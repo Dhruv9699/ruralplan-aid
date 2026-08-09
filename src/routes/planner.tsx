@@ -104,7 +104,7 @@ function Planner() {
 
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  function savePlan() {
+  const savePlan = () => {
     addProduction({
       date: new Date().toISOString().slice(0, 10),
       productId: product.id,
@@ -114,7 +114,7 @@ function Planner() {
     });
     updateProduct(product.id, { currentStock: num(form.currentStock) });
     toast.success("Production plan saved to production history");
-  }
+  };
 
   return (
     <AppShell>
