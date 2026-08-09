@@ -13,7 +13,7 @@ export function monthKey(date: string) {
 }
 
 export function monthLabel(key: string) {
-  const [y, m] = key.split("-").map(Number);
+  const [y, m] = key.split("-").map(Number) as [number, number];
   return new Date(y, m - 1, 1).toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
 }
 
@@ -86,8 +86,8 @@ export function estimateDemand(sales: Sale[], productId: string): DemandEstimate
   }
   const last = history.slice(-3);
   const avg = last.reduce((a, b) => a + b.quantity, 0) / last.length;
-  const first = history[Math.max(0, history.length - 3)].quantity;
-  const latest = history[history.length - 1].quantity;
+  const first = history[Math.max(0, history.length - 3)]!.quantity;
+  const latest = history[history.length - 1]!.quantity;
   const trendPercent = first > 0 ? Math.round(((latest - first) / first) * 100) : 0;
   const estimate = Math.max(0, Math.round(avg * (1 + trendPercent / 200)));
   return {

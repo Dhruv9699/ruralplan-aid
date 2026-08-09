@@ -76,7 +76,7 @@ function dayFor(seed: number, offset: number, label: string): WeatherDay {
   const d = new Date();
   d.setDate(d.getDate() + offset);
   const k = (seed + offset * 37) % 100;
-  const condition = CONDITIONS[(seed + offset * 3) % CONDITIONS.length];
+  const condition = CONDITIONS[(seed + offset * 3) % CONDITIONS.length]!;
   const rainChance =
     condition === "Heavy Rain"
       ? 75 + (k % 20)

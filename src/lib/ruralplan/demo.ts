@@ -61,7 +61,7 @@ function buildSales(): Sale[] {
   for (let m = 5; m >= 0; m--) {
     for (const product of demoProducts) {
       const growth = 1 + (5 - m) * 0.09;
-      const monthTotal = Math.round(base[product.id] * growth);
+      const monthTotal = Math.round((base[product.id] ?? 0) * growth);
       // split month into 4 weekly records
       for (let w = 0; w < 4; w++) {
         const d = new Date(today.getFullYear(), today.getMonth() - m, 3 + w * 7);
@@ -69,7 +69,7 @@ function buildSales(): Sale[] {
           id: id("sale", ++n),
           date: d.toISOString().slice(0, 10),
           productId: product.id,
-          location: locations[(n + w) % locations.length],
+          location: locations[(n + w) % locations.length]!,
           quantity: Math.max(1, Math.round((monthTotal / 4) * (0.85 + ((n % 5) * 0.08)))),
         });
       }
