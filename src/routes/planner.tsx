@@ -28,7 +28,7 @@ export const Route = createFileRoute("/planner")({
       },
     ],
   }),
-  component: Planner;
+  component: Planner,
 });
 
 const CONDITIONS = ["Clear weather", "Light rain expected", "Heavy rain expected", "High humidity"];
