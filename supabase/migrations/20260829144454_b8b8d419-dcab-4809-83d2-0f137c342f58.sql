@@ -1,0 +1,1 @@
+alter table public.products add column if not exists production_cost numeric not null default 0;
