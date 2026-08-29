@@ -14,7 +14,296 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      inventory: {
+        Row: {
+          created_at: string
+          current_quantity: number
+          id: string
+          material_name: string
+          minimum_quantity: number
+          product_id: string | null
+          required_quantity: number
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_quantity?: number
+          id?: string
+          material_name: string
+          minimum_quantity?: number
+          product_id?: string | null
+          required_quantity?: number
+          unit?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_quantity?: number
+          id?: string
+          material_name?: string
+          minimum_quantity?: number
+          product_id?: string | null
+          required_quantity?: number
+          unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_history: {
+        Row: {
+          actual_quantity: number
+          created_at: string
+          date: string
+          id: string
+          planned_quantity: number
+          product_id: string
+          quantity_sold: number
+          remaining_stock: number
+          user_id: string
+        }
+        Insert: {
+          actual_quantity?: number
+          created_at?: string
+          date: string
+          id?: string
+          planned_quantity?: number
+          product_id: string
+          quantity_sold?: number
+          remaining_stock?: number
+          user_id: string
+        }
+        Update: {
+          actual_quantity?: number
+          created_at?: string
+          date?: string
+          id?: string
+          planned_quantity?: number
+          product_id?: string
+          quantity_sold?: number
+          remaining_stock?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_recommendations: {
+        Row: {
+          created_at: string
+          current_stock: number
+          expected_demand: number
+          id: string
+          product_id: string
+          recommended_quantity: number
+          safety_stock: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_stock?: number
+          expected_demand?: number
+          id?: string
+          product_id: string
+          recommended_quantity?: number
+          safety_stock?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_stock?: number
+          expected_demand?: number
+          id?: string
+          product_id?: string
+          recommended_quantity?: number
+          safety_stock?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_recommendations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_recommendations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          created_at: string
+          current_stock: number
+          id: string
+          minimum_stock: number
+          product_name: string
+          production_capacity: number
+          raw_material_name: string
+          raw_per_unit: number
+          raw_unit: string
+          shelf_life: number
+          unit: string
+          updated_at: string
+          user_id: string
+          workers: number
+        }
+        Insert: {
+          created_at?: string
+          current_stock?: number
+          id?: string
+          minimum_stock?: number
+          product_name: string
+          production_capacity?: number
+          raw_material_name: string
+          raw_per_unit?: number
+          raw_unit?: string
+          shelf_life?: number
+          unit: string
+          updated_at?: string
+          user_id: string
+          workers?: number
+        }
+        Update: {
+          created_at?: string
+          current_stock?: number
+          id?: string
+          minimum_stock?: number
+          product_name?: string
+          production_capacity?: number
+          raw_material_name?: string
+          raw_per_unit?: number
+          raw_unit?: string
+          shelf_life?: number
+          unit?: string
+          updated_at?: string
+          user_id?: string
+          workers?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          district: string
+          email: string
+          id: string
+          location: string
+          name: string
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          district?: string
+          email: string
+          id: string
+          location?: string
+          name: string
+          state?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          district?: string
+          email?: string
+          id?: string
+          location?: string
+          name?: string
+          state?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sales_history: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          location: string
+          product_id: string
+          quantity_sold: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          location?: string
+          product_id: string
+          quantity_sold?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          location?: string
+          product_id?: string
+          quantity_sold?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
