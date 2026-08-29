@@ -175,6 +175,7 @@ export type Database = {
           minimum_stock: number
           product_name: string
           production_capacity: number
+          production_cost: number
           raw_material_name: string
           raw_per_unit: number
           raw_unit: string
@@ -191,6 +192,7 @@ export type Database = {
           minimum_stock?: number
           product_name: string
           production_capacity?: number
+          production_cost?: number
           raw_material_name: string
           raw_per_unit?: number
           raw_unit?: string
@@ -207,6 +209,7 @@ export type Database = {
           minimum_stock?: number
           product_name?: string
           production_capacity?: number
+          production_cost?: number
           raw_material_name?: string
           raw_per_unit?: number
           raw_unit?: string
