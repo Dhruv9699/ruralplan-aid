@@ -1,0 +1,1 @@
+alter table public.profiles add column if not exists safety_stock_percent numeric not null default 10; alter table public.profiles add column if not exists planning_days integer not null default 30;

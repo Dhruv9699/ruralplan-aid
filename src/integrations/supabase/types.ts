@@ -234,6 +234,8 @@ export type Database = {
           id: string
           location: string
           name: string
+          planning_days: number
+          safety_stock_percent: number
           state: string
           updated_at: string
         }
@@ -244,6 +246,8 @@ export type Database = {
           id: string
           location?: string
           name: string
+          planning_days?: number
+          safety_stock_percent?: number
           state?: string
           updated_at?: string
         }
@@ -254,6 +258,8 @@ export type Database = {
           id?: string
           location?: string
           name?: string
+          planning_days?: number
+          safety_stock_percent?: number
           state?: string
           updated_at?: string
         }
