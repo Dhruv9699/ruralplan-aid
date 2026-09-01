@@ -107,9 +107,12 @@ function SalesPage() {
       return;
     }
     setErrors({});
-    addSale(parsed.data);
-    setForm((f) => ({ ...f, quantity: "" }));
-    toast.success("Sales record added");
+    void addSale(parsed.data)
+      .then(() => {
+        setForm((f) => ({ ...f, quantity: "" }));
+        toast.success("Sales record added");
+      })
+      .catch((error) => toast.error(error instanceof Error ? error.message : "Unable to add sales record"));
   };
 
   return (
@@ -305,7 +308,9 @@ function SalesPage() {
                         variant="ghost"
                         size="icon"
                         aria-label="Delete record"
-                        onClick={() => removeSale(s.id)}
+                        onClick={() => {
+                          void removeSale(s.id).catch((error) => toast.error(error instanceof Error ? error.message : "Unable to remove sales record"));
+                        }}
                       >
                         <Trash2 className="size-4 text-destructive" />
                       </Button>

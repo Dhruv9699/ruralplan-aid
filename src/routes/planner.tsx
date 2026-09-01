@@ -105,22 +105,26 @@ function Planner() {
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const savePlan = async () => {
-    await saveRecommendation({
-      productId: product.id,
-      expectedDemand: num(form.expectedDemand),
-      currentStock: num(form.currentStock),
-      safetyStock: plan.safetyStock,
-      recommendedQuantity: plan.requiredProduction,
-    });
-    await addProduction({
-      date: new Date().toISOString().slice(0, 10),
-      productId: product.id,
-      planned: plan.requiredProduction,
-      actual: 0,
-      sold: 0,
-    });
-    await updateProduct(product.id, { currentStock: num(form.currentStock) });
-    toast.success("Production plan saved to production history");
+    try {
+      await saveRecommendation({
+        productId: product.id,
+        expectedDemand: num(form.expectedDemand),
+        currentStock: num(form.currentStock),
+        safetyStock: plan.safetyStock,
+        recommendedQuantity: plan.requiredProduction,
+      });
+      await addProduction({
+        date: new Date().toISOString().slice(0, 10),
+        productId: product.id,
+        planned: plan.requiredProduction,
+        actual: 0,
+        sold: 0,
+      });
+      await updateProduct(product.id, { currentStock: num(form.currentStock) });
+      toast.success("Production plan saved to production history");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save production plan");
+    }
   };
 
   return (
