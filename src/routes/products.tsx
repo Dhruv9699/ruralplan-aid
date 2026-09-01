@@ -109,7 +109,7 @@ function ProductsPage() {
     setOpen(true);
   }
 
-  function save() {
+  async function save() {
     const parsed = schema.safeParse({
       name: form.name,
       rawMaterial: form.rawMaterial,
@@ -130,14 +130,18 @@ function ProductsPage() {
       toast.error("Please correct the highlighted fields");
       return;
     }
-    if (editId) {
-      updateProduct(editId, parsed.data);
-      toast.success("Product updated");
-    } else {
-      addProduct(parsed.data);
-      toast.success("Product added");
+    try {
+      if (editId) {
+        await updateProduct(editId, parsed.data);
+        toast.success("Product updated");
+      } else {
+        await addProduct(parsed.data);
+        toast.success("Product added");
+      }
+      setOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save product");
     }
-    setOpen(false);
   }
 
   return (
@@ -176,8 +180,9 @@ function ProductsPage() {
                     size="icon"
                     aria-label="Delete"
                     onClick={() => {
-                      removeProduct(p.id);
-                      toast.success(`${p.name} deleted`);
+                      void removeProduct(p.id)
+                        .then(() => toast.success(`${p.name} deleted`))
+                        .catch((error) => toast.error(error instanceof Error ? error.message : "Unable to delete product"));
                     }}
                   >
                     <Trash2 className="size-4 text-destructive" />

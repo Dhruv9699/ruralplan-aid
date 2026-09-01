@@ -57,7 +57,7 @@ function WeatherPage() {
               value={district}
               onValueChange={(v) => {
                 setDistrict(v);
-                updateSettings({ district: v });
+                void updateSettings({ district: v }).catch((error) => toast.error(error instanceof Error ? error.message : "Unable to save district"));
               }}
             >
               <SelectTrigger className="h-12">
@@ -78,7 +78,7 @@ function WeatherPage() {
               value={location}
               onChange={(e) => {
                 setLocation(e.target.value);
-                updateSettings({ village: e.target.value });
+                void updateSettings({ village: e.target.value }).catch((error) => toast.error(error instanceof Error ? error.message : "Unable to save location"));
               }}
               placeholder="Village or town"
             />

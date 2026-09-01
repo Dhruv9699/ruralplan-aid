@@ -65,11 +65,11 @@ export function RuralPlanProvider({ children }: { children: ReactNode }) {
       const meta = user.user_metadata ?? {};
       const created = await supabase.from("profiles").upsert({
         id,
-        name: String(meta.name ?? meta.full_name ?? "RuralPlan User"),
+        name: String(meta["name"] ?? meta["full_name"] ?? "RuralPlan User"),
         email: user.email ?? "",
-        location: String(meta.village ?? "Ozar"),
-        district: String(meta.district ?? "Nashik"),
-        state: String(meta.state ?? "Maharashtra"),
+        location: String(meta["village"] ?? "Ozar"),
+        district: String(meta["district"] ?? "Nashik"),
+        state: String(meta["state"] ?? "Maharashtra"),
       }).select("*").single();
       if (created.error) throw created.error;
       profileRow = created.data;
@@ -219,7 +219,14 @@ export function RuralPlanProvider({ children }: { children: ReactNode }) {
     },
     saveRecommendation: async (r) => {
       const owner = requireUser();
-      const { error } = await supabase.from("production_recommendations").insert({ user_id: owner, ...r });
+      const { error } = await supabase.from("production_recommendations").insert({
+        user_id: owner,
+        product_id: r.productId,
+        expected_demand: r.expectedDemand,
+        current_stock: r.currentStock,
+        safety_stock: r.safetyStock,
+        recommended_quantity: r.recommendedQuantity,
+      });
       if (error) throw error;
     },
     updateSettings: async (s) => {

@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   AlertTriangle,
   Boxes,
@@ -13,7 +13,7 @@ import {
   Settings,
   Sprout,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/lib/ruralplan/store";
@@ -97,9 +97,18 @@ export function PageHeader({
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { profile } = useStore();
+  const { profile, ready, isAuthenticated } = useStore();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  useEffect(() => {
+    if (ready && !isAuthenticated) navigate({ to: "/auth", replace: true });
+  }, [ready, isAuthenticated, navigate]);
+
+  if (!ready || !isAuthenticated) {
+    return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading RuralPlan…</div>;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -109,9 +118,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <NavLinks />
         </div>
         <div className="rounded-xl bg-sidebar-accent/70 p-3 text-sidebar-foreground">
-          <p className="text-sm font-medium">{profile?.name ?? "Demo Entrepreneur"}</p>
+            <p className="text-sm font-medium">{profile?.name ?? "RuralPlan User"}</p>
           <p className="text-xs opacity-80">
-            {profile ? `${profile.village}, ${profile.district}` : "Using demo data"}
+            {profile ? `${profile.village}, ${profile.district}` : "Your account"}
           </p>
         </div>
       </aside>

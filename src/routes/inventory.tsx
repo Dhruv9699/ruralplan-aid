@@ -68,9 +68,12 @@ function InventoryPage() {
       return;
     }
     setErrors({});
-    addMaterial(parsed.data);
-    setForm({ name: "", unit: "kg", currentQty: "", requiredQty: "", minLevel: "" });
-    toast.success("Raw material added");
+    void addMaterial(parsed.data)
+      .then(() => {
+        setForm({ name: "", unit: "kg", currentQty: "", requiredQty: "", minLevel: "" });
+        toast.success("Raw material added");
+      })
+      .catch((error) => toast.error(error instanceof Error ? error.message : "Unable to add raw material"));
   };
 
   return (
@@ -119,7 +122,7 @@ function InventoryPage() {
                     min={0}
                     value={m.currentQty}
                     onChange={(e) =>
-                      updateMaterial(m.id, { currentQty: Math.max(0, Number(e.target.value) || 0) })
+                      void updateMaterial(m.id, { currentQty: Math.max(0, Number(e.target.value) || 0) }).catch((error) => toast.error(error instanceof Error ? error.message : "Unable to update inventory"))
                     }
                   />
                 </Field>
@@ -129,7 +132,7 @@ function InventoryPage() {
                     min={0}
                     value={m.requiredQty}
                     onChange={(e) =>
-                      updateMaterial(m.id, { requiredQty: Math.max(0, Number(e.target.value) || 0) })
+                      void updateMaterial(m.id, { requiredQty: Math.max(0, Number(e.target.value) || 0) }).catch((error) => toast.error(error instanceof Error ? error.message : "Unable to update inventory"))
                     }
                   />
                 </Field>
@@ -138,8 +141,9 @@ function InventoryPage() {
                 variant="outline"
                 className="mt-3 w-full"
                 onClick={() => {
-                  removeMaterial(m.id);
-                  toast.success(`${m.name} removed`);
+                  void removeMaterial(m.id)
+                    .then(() => toast.success(`${m.name} removed`))
+                    .catch((error) => toast.error(error instanceof Error ? error.message : "Unable to remove material"));
                 }}
               >
                 <Trash2 className="size-4 text-destructive" /> Remove

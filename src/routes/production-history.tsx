@@ -82,9 +82,12 @@ function HistoryPage() {
       return;
     }
     setErrors({});
-    addProduction(parsed.data);
-    setForm((f) => ({ ...f, planned: "", actual: "", sold: "" }));
-    toast.success("Production record added");
+    void addProduction(parsed.data)
+      .then(() => {
+        setForm((f) => ({ ...f, planned: "", actual: "", sold: "" }));
+        toast.success("Production record added");
+      })
+      .catch((error) => toast.error(error instanceof Error ? error.message : "Unable to add production record"));
   };
 
   return (
@@ -207,7 +210,9 @@ function HistoryPage() {
                         variant="ghost"
                         size="icon"
                         aria-label="Delete record"
-                        onClick={() => removeProduction(r.id)}
+                        onClick={() => {
+                          void removeProduction(r.id).catch((error) => toast.error(error instanceof Error ? error.message : "Unable to remove production record"));
+                        }}
                       >
                         <Trash2 className="size-4 text-destructive" />
                       </Button>
