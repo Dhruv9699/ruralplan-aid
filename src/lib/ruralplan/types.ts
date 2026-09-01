@@ -39,6 +39,7 @@ export interface ProductionRecord {
   planned: number;
   actual: number;
   sold: number;
+  remainingStock?: number;
 }
 
 export interface Profile {

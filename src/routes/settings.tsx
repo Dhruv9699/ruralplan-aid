@@ -36,21 +36,25 @@ function SettingsPage() {
   const [district, setDistrict] = useState(profile?.district ?? settings.district);
   const [safety, setSafety] = useState(String(settings.safetyStockPercent));
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
     if (name.trim().length < 2) {
       toast.error("Please enter your name");
       return;
     }
-    signIn({
+    try {
+      await signIn({
       name: name.trim(),
       email: profile?.email ?? "demo@ruralplan.in",
       village: village.trim(),
       district,
       state: profile?.state ?? "Maharashtra",
-    });
-    const pct = Math.min(100, Math.max(0, Number(safety) || 0));
-    updateSettings({ village: village.trim(), district, safetyStockPercent: pct });
-    toast.success("Settings saved");
+      });
+      const pct = Math.min(100, Math.max(0, Number(safety) || 0));
+      await updateSettings({ village: village.trim(), district, safetyStockPercent: pct });
+      toast.success("Settings saved");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save settings");
+    }
   };
 
   return (
@@ -102,16 +106,15 @@ function SettingsPage() {
         <section className="surface-card p-5">
           <h2 className="font-display text-lg font-semibold">Data</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            RuralPlan stores your products, sales, raw materials and production records on this
-            device. You can reload the sample data or start with a clean account.
+            RuralPlan stores your products, sales, raw materials and production records in your
+            secure account. You can reload sample data or start with a clean account.
           </p>
           <div className="mt-4 grid gap-3">
             <Button
               variant="outline"
               className="h-12"
               onClick={() => {
-                loadDemoData();
-                toast.success("Demo data reloaded");
+                void loadDemoData().then(() => toast.success("Demo data reloaded")).catch((error) => toast.error(error instanceof Error ? error.message : "Unable to load demo data"));
               }}
             >
               Reload demo data
@@ -120,8 +123,7 @@ function SettingsPage() {
               variant="outline"
               className="h-12"
               onClick={() => {
-                clearAllData();
-                toast.success("All data cleared");
+                void clearAllData().then(() => toast.success("All data cleared")).catch((error) => toast.error(error instanceof Error ? error.message : "Unable to clear data"));
               }}
             >
               Delete all data and start fresh
@@ -130,8 +132,7 @@ function SettingsPage() {
               variant="ghost"
               className="h-12"
               onClick={() => {
-                signOut();
-                navigate({ to: "/" });
+                void signOut().then(() => navigate({ to: "/" }));
               }}
             >
               Log out

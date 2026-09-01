@@ -40,7 +40,7 @@ const SLOWDOWN: Record<string, number> = {
 };
 
 function Planner() {
-  const { products, materials, sales, settings, addProduction, updateProduct } = useStore();
+  const { products, materials, sales, settings, addProduction, updateProduct, saveRecommendation } = useStore();
   const [productId, setProductId] = useState("");
   const product = products.find((p) => p.id === productId) ?? products[0];
 
@@ -104,15 +104,22 @@ function Planner() {
 
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  const savePlan = () => {
-    addProduction({
+  const savePlan = async () => {
+    await saveRecommendation({
+      productId: product.id,
+      expectedDemand: num(form.expectedDemand),
+      currentStock: num(form.currentStock),
+      safetyStock: plan.safetyStock,
+      recommendedQuantity: plan.requiredProduction,
+    });
+    await addProduction({
       date: new Date().toISOString().slice(0, 10),
       productId: product.id,
       planned: plan.requiredProduction,
       actual: 0,
       sold: 0,
     });
-    updateProduct(product.id, { currentStock: num(form.currentStock) });
+    await updateProduct(product.id, { currentStock: num(form.currentStock) });
     toast.success("Production plan saved to production history");
   };
 

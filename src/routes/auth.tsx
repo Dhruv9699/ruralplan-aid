@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore } from "@/lib/ruralplan/store";
 import { MAHARASHTRA_DISTRICTS } from "@/lib/ruralplan/weather";
+import { lovable } from "@/integrations/lovable";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -40,7 +41,7 @@ const schema = z.object({
 });
 
 function AuthPage() {
-  const { signIn, updateSettings } = useStore();
+  const { register, login } = useStore();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signup" | "login">("signup");
   const [form, setForm] = useState({
@@ -55,7 +56,7 @@ function AuthPage() {
 
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     const payload = mode === "login" ? { ...form, name: form.name || "RuralPlan User" } : form;
     const parsed = schema.safeParse(payload);
@@ -67,23 +68,27 @@ function AuthPage() {
     }
     setErrors({});
     const { name, email, village, district, state } = parsed.data;
-    signIn({ name, email, village, district, state });
-    updateSettings({ district, village });
-    toast.success(mode === "signup" ? "Account created" : "Welcome back");
-    navigate({ to: "/dashboard" });
+    try {
+      if (mode === "signup") {
+        const confirmed = await register({ name, email, village, district, state }, parsed.data.password);
+        if (!confirmed) {
+          toast.success("Account created. Check your email to confirm, then log in.");
+          setMode("login");
+          return;
+        }
+      } else {
+        await login(email, parsed.data.password);
+      }
+      toast.success(mode === "signup" ? "Account created" : "Welcome back");
+      navigate({ to: "/dashboard" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to authenticate");
+    }
   }
 
-  function demoLogin() {
-    signIn({
-      name: "Demo Entrepreneur",
-      email: "demo@ruralplan.in",
-      village: "Ozar",
-      district: "Nashik",
-      state: "Maharashtra",
-    });
-    updateSettings({ district: "Nashik", village: "Ozar" });
-    toast.success("Signed in with demo data");
-    navigate({ to: "/dashboard" });
+  async function googleLogin() {
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    if (result.error) toast.error(result.error.message);
   }
 
   return (
@@ -162,13 +167,13 @@ function AuthPage() {
             <Button type="submit" size="lg" className="h-12 w-full">
               {mode === "signup" ? "Create account" : "Login"}
             </Button>
-            <Button type="button" variant="outline" className="h-12 w-full" onClick={demoLogin}>
-              Continue with demo data
+            <Button type="button" variant="outline" className="h-12 w-full" onClick={googleLogin}>
+              Continue with Google
             </Button>
           </form>
         </div>
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          This prototype stores your data safely on this device only.
+          Your products, sales, inventory and production history are stored securely in your account.
         </p>
       </div>
     </div>
