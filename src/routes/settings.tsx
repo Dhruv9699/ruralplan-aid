@@ -23,6 +23,8 @@ export const Route = createFileRoute("/settings")({
         property: "og:description",
         content: "Manage your profile, planning settings and demo data.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: SettingsPage,

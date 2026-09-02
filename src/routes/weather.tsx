@@ -24,6 +24,8 @@ export const Route = createFileRoute("/weather")({
         property: "og:description",
         content: "Weather information used as a supporting factor for production planning.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: WeatherPage,

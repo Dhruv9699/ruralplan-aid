@@ -38,6 +38,8 @@ export const Route = createFileRoute("/production-history")({
         property: "og:description",
         content: "Planned vs actual production and production vs sales for each batch.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: HistoryPage,

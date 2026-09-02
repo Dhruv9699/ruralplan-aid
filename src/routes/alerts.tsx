@@ -19,6 +19,8 @@ export const Route = createFileRoute("/alerts")({
         property: "og:description",
         content: "See everything that needs your attention before you start production.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AlertsPage,

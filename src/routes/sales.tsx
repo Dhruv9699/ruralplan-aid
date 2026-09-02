@@ -46,6 +46,8 @@ export const Route = createFileRoute("/sales")({
         property: "og:description",
         content: "Track your sales and see the demand trend for each product.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: SalesPage,
