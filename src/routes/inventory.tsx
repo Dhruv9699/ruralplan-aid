@@ -26,6 +26,8 @@ export const Route = createFileRoute("/inventory")({
         property: "og:description",
         content: "See which raw materials are sufficient, low or insufficient for production.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: InventoryPage,

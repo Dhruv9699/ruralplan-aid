@@ -21,6 +21,8 @@ export const Route = createFileRoute("/assistant")({
         property: "og:description",
         content: "A production planning assistant that answers using the data in your account.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AssistantPage,

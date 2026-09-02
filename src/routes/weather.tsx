@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { CloudRain, CloudSun, Droplets, Sun, Thermometer } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { Field } from "@/components/field";
 import { StatCard } from "@/components/stat-card";
@@ -23,6 +24,8 @@ export const Route = createFileRoute("/weather")({
         property: "og:description",
         content: "Weather information used as a supporting factor for production planning.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: WeatherPage,

@@ -118,7 +118,8 @@ export function RuralPlanProvider({ children }: { children: ReactNode }) {
     if (!result.user) throw new Error("Account could not be created.");
     if (result.session) {
       setUserId(result.user.id);
-      await supabase.from("profiles").upsert({ id: result.user.id, name: profile.name, email: profile.email, location: profile.village, district: profile.district, state: profile.state });
+      const profileResult = await supabase.from("profiles").upsert({ id: result.user.id, name: profile.name, email: profile.email, location: profile.village, district: profile.district, state: profile.state });
+      if (profileResult.error) throw profileResult.error;
       await loadData(result.user.id, result.user);
     }
     return Boolean(result.session);
@@ -239,7 +240,13 @@ export function RuralPlanProvider({ children }: { children: ReactNode }) {
     loadDemoData: async () => {
       const owner = requireUser();
       const demo = createDemoData();
-      const clearResults = await Promise.all([supabase.from("inventory").delete().eq("user_id", owner), supabase.from("products").delete().eq("user_id", owner)]);
+      const clearResults = await Promise.all([
+        supabase.from("inventory").delete().eq("user_id", owner),
+        supabase.from("sales_history").delete().eq("user_id", owner),
+        supabase.from("production_history").delete().eq("user_id", owner),
+        supabase.from("production_recommendations").delete().eq("user_id", owner),
+        supabase.from("products").delete().eq("user_id", owner),
+      ]);
       const clearError = clearResults.find((result) => result.error)?.error;
       if (clearError) throw clearError;
       const inserted = await supabase.from("products").insert(demo.products.map((p) => ({ user_id: owner, product_name: p.name, raw_material_name: p.rawMaterial, unit: p.unit, production_capacity: p.capacityPerDay, current_stock: p.currentStock, minimum_stock: p.minStock, shelf_life: p.shelfLifeDays, production_cost: p.productionCost ?? 0, workers: p.workers, raw_per_unit: p.rawPerUnit, raw_unit: p.rawUnit }))).select("*");
@@ -257,7 +264,13 @@ export function RuralPlanProvider({ children }: { children: ReactNode }) {
     },
     clearAllData: async () => {
       const owner = requireUser();
-      const results = await Promise.all([supabase.from("inventory").delete().eq("user_id", owner), supabase.from("products").delete().eq("user_id", owner)]);
+      const results = await Promise.all([
+        supabase.from("inventory").delete().eq("user_id", owner),
+        supabase.from("sales_history").delete().eq("user_id", owner),
+        supabase.from("production_history").delete().eq("user_id", owner),
+        supabase.from("production_recommendations").delete().eq("user_id", owner),
+        supabase.from("products").delete().eq("user_id", owner),
+      ]);
       const error = results.find((result) => result.error)?.error;
       if (error) throw error;
       patch((d) => ({ ...createEmptyData(), profile: d.profile }));

@@ -26,6 +26,8 @@ export const Route = createFileRoute("/auth")({
         property: "og:description",
         content: "Sign in to RuralPlan and plan production with your own data.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AuthPage,

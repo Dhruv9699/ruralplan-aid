@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "RuralPlan — Smart Production Planning for Rural Entrepreneurs" },
+      { title: "RuralPlan — Production Planning" },
       {
         name: "description",
         content:
@@ -13,13 +13,15 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:title",
-        content: "RuralPlan — Smart Production Planning for Rural Entrepreneurs",
+        content: "RuralPlan — Production Planning",
       },
       {
         property: "og:description",
         content:
           "Decide what, when and how much to produce using your own data — demand estimates, stock, raw materials, capacity and weather.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Landing,

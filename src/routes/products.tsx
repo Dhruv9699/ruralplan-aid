@@ -33,6 +33,8 @@ export const Route = createFileRoute("/products")({
         property: "og:description",
         content: "Manage the products you make and their production details.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: ProductsPage,

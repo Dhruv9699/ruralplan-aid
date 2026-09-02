@@ -26,6 +26,8 @@ export const Route = createFileRoute("/planner")({
         property: "og:description",
         content: "Find out how much to produce and how many production days you need.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Planner,
