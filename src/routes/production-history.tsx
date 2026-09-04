@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useStore } from "@/lib/ruralplan/store";
+import { useTranslation } from "@/i18n/useTranslation";
 import { productionChartData } from "@/lib/ruralplan/engine";
 
 export const Route = createFileRoute("/production-history")({
@@ -56,6 +57,7 @@ const schema = z.object({
 });
 
 function HistoryPage() {
+  const { t } = useTranslation();
   const { products, production, addProduction, removeProduction } = useStore();
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
@@ -87,16 +89,16 @@ function HistoryPage() {
     void addProduction(parsed.data)
       .then(() => {
         setForm((f) => ({ ...f, planned: "", actual: "", sold: "" }));
-        toast.success("Production record added");
+        toast.success(t("common.success"));
       })
-      .catch((error) => toast.error(error instanceof Error ? error.message : "Unable to add production record"));
+      .catch((error) => toast.error(error instanceof Error ? error.message : t("common.error")));
   };
 
   return (
     <AppShell>
       <PageHeader
-        title="Production History"
-        description="Record what you planned, what you actually produced and what you sold. This helps improve future planning."
+        title={t("productionHistory.title")}
+        description={t("productionHistory.description")}
       />
 
       <section className="grid gap-5 lg:grid-cols-2">
@@ -110,8 +112,8 @@ function HistoryPage() {
                 <YAxis fontSize={12} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="planned" name="Planned" fill="var(--color-chart-1)" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="actual" name="Actual" fill="var(--color-chart-2)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="planned" name={t("productionHistory.planned")} fill="var(--color-chart-1)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="actual" name={t("productionHistory.actual")} fill="var(--color-chart-2)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -126,8 +128,8 @@ function HistoryPage() {
                 <YAxis fontSize={12} />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="actual" name="Produced" stroke="var(--color-chart-1)" strokeWidth={3} />
-                <Line type="monotone" dataKey="sold" name="Sold" stroke="var(--color-chart-3)" strokeWidth={3} />
+                <Line type="monotone" dataKey="actual" name={t("productionHistory.actual")} stroke="var(--color-chart-1)" strokeWidth={3} />
+                <Line type="monotone" dataKey="sold" name={t("productionHistory.sold")} stroke="var(--color-chart-3)" strokeWidth={3} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -137,13 +139,13 @@ function HistoryPage() {
       <section className="mt-5 surface-card p-5">
         <h2 className="font-display text-lg font-semibold">Add a production record</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-6">
-          <Field label="Date" error={errors["date"]}>
+          <Field label={t("productionHistory.date")} error={errors["date"]}>
             <Input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
           </Field>
-          <Field label="Product" error={errors["productId"]}>
+          <Field label={t("productionHistory.product")} error={errors["productId"]}>
             <Select value={form.productId || products[0]?.id || ""} onValueChange={(v) => set("productId", v)}>
               <SelectTrigger>
-                <SelectValue placeholder="Select" />
+                <SelectValue placeholder={t("common.select")} />
               </SelectTrigger>
               <SelectContent>
                 {products.map((p) => (
@@ -154,18 +156,18 @@ function HistoryPage() {
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Planned" error={errors["planned"]}>
+          <Field label={t("productionHistory.planned")} error={errors["planned"]}>
             <Input type="number" min={0} value={form.planned} onChange={(e) => set("planned", e.target.value)} />
           </Field>
-          <Field label="Actual produced" error={errors["actual"]}>
+          <Field label={t("productionHistory.actual")} error={errors["actual"]}>
             <Input type="number" min={0} value={form.actual} onChange={(e) => set("actual", e.target.value)} />
           </Field>
-          <Field label="Sold" error={errors["sold"]}>
+          <Field label={t("productionHistory.sold")} error={errors["sold"]}>
             <Input type="number" min={0} value={form.sold} onChange={(e) => set("sold", e.target.value)} />
           </Field>
           <div className="flex items-end">
             <Button className="h-11 w-full" onClick={add}>
-              <Plus className="size-4" /> Add
+              <Plus className="size-4" /> {t("common.add")}
             </Button>
           </div>
         </div>
@@ -177,12 +179,12 @@ function HistoryPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead className="text-right">Planned</TableHead>
-                <TableHead className="text-right">Actual</TableHead>
-                <TableHead className="text-right">Sold</TableHead>
-                <TableHead className="text-right">Remaining stock</TableHead>
+                <TableHead>{t("productionHistory.date")}</TableHead>
+                <TableHead>{t("productionHistory.product")}</TableHead>
+                <TableHead className="text-right">{t("productionHistory.planned")}</TableHead>
+                <TableHead className="text-right">{t("productionHistory.actual")}</TableHead>
+                <TableHead className="text-right">{t("productionHistory.sold")}</TableHead>
+                <TableHead className="text-right">{t("productionHistory.remaining")}</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -190,7 +192,7 @@ function HistoryPage() {
               {production.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
-                    No production records yet.
+                    {t("productionHistory.noRecords")}
                   </TableCell>
                 </TableRow>
               )}
@@ -213,7 +215,7 @@ function HistoryPage() {
                         size="icon"
                         aria-label="Delete record"
                         onClick={() => {
-                          void removeProduction(r.id).catch((error) => toast.error(error instanceof Error ? error.message : "Unable to remove production record"));
+                          void removeProduction(r.id).catch((error) => toast.error(error instanceof Error ? error.message : t("common.error")));
                         }}
                       >
                         <Trash2 className="size-4 text-destructive" />

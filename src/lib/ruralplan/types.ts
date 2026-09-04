@@ -13,6 +13,16 @@ export interface Product {
   workers: number;
   rawPerUnit: number; // raw material needed per unit produced
   rawUnit: string;
+  
+  // Cold Start fields (for initial demand estimation)
+  demandMode?: "normal" | "cold_start"; // Default: "normal"
+  potentialCustomers?: number; // Estimated market size
+  conversionRate?: number; // 0-100: % of potential customers who buy
+  purchaseFrequency?: "weekly" | "monthly" | "quarterly" | "seasonal";
+  avgPurchaseQuantity?: number; // Units per customer per transaction
+  isSeasonal?: boolean; // Whether product is seasonal
+  seasonStartMonth?: number; // 1-12: Month when season starts
+  seasonEndMonth?: number; // 1-12: Month when season ends
 }
 
 export interface Sale {

@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useStore } from "@/lib/ruralplan/store";
+import { useTranslation } from "@/i18n/useTranslation";
 import { dailySales, estimateDemand, monthlySales, weeklySales } from "@/lib/ruralplan/engine";
 
 export const Route = createFileRoute("/sales")({
@@ -63,6 +64,7 @@ const schema = z.object({
 });
 
 function SalesPage() {
+  const { t } = useTranslation();
   const { products, sales, addSale, removeSale, settings } = useStore();
   const [productFilter, setProductFilter] = useState("");
   const activeProduct = products.find((p) => p.id === productFilter) ?? products[0];
@@ -112,21 +114,21 @@ function SalesPage() {
     void addSale(parsed.data)
       .then(() => {
         setForm((f) => ({ ...f, quantity: "" }));
-        toast.success("Sales record added");
+        toast.success(t("sales.salesRecordAdded"));
       })
-      .catch((error) => toast.error(error instanceof Error ? error.message : "Unable to add sales record"));
+      .catch((error) => toast.error(error instanceof Error ? error.message : t("common.error")));
   };
 
   return (
     <AppShell>
       <PageHeader
-        title="Demand & Sales History"
-        description="Enter what you sold in the past. RuralPlan uses this to estimate demand for the coming month."
+        title={t("sales.title")}
+        description={t("sales.description")}
         action={
           products.length > 0 ? (
             <Select value={activeProduct?.id ?? ""} onValueChange={setProductFilter}>
               <SelectTrigger className="h-12 min-w-52">
-                <SelectValue placeholder="Select product" />
+                <SelectValue placeholder={t("sales.selectProduct")} />
               </SelectTrigger>
               <SelectContent>
                 {products.map((p) => (
@@ -141,37 +143,52 @@ function SalesPage() {
       />
 
       {demand && activeProduct && (
-        <section className="mb-5 grid gap-4 sm:grid-cols-3">
+        <section className="mb-5 grid gap-4 sm:grid-cols-4">
           <StatCard
-            label="Estimated Demand (next month)"
+            label={t("sales.estimatedDemandNextMonth")}
             value={`${demand.estimate} ${activeProduct.unit}`}
-            hint="Based on previous sales data"
+            hint={`Range: ${demand.estimateLow}–${demand.estimateHigh} (${demand.confidence} ${t("sales.confidence")})`}
             icon={<TrendingUp className="size-4" />}
-            tone="info"
+            tone={demand.confidence === "high" ? "success" : demand.confidence === "medium" ? "warning" : "destructive"}
           />
           <StatCard
-            label="Demand trend"
+            label={t("sales.trend")}
             value={`${demand.trendPercent > 0 ? "+" : ""}${demand.trendPercent}%`}
-            hint="Compared with three months ago"
-            tone={demand.trendPercent >= 0 ? "success" : "warning"}
+            hint={demand.trend === "increasing" ? t("sales.demandGrowing") : demand.trend === "decreasing" ? t("sales.demandDeclining") : t("sales.stableDemand")}
+            icon={<TrendingUp className="size-4" />}
+            tone={demand.trend === "increasing" ? "success" : demand.trend === "decreasing" ? "warning" : "default"}
           />
-          <StatCard label="Method" value={demand.method} hint="Simple and transparent, not AI prediction" />
+          <StatCard
+            label={t("sales.dataPoints")}
+            value={`${demand.monthsUsed} ${t("sales.months")}`}
+            hint={`${demand.history.length} ${t("sales.totalMonthsAvailable")}`}
+            icon={<TrendingUp className="size-4" />}
+            tone="default"
+          />
+          <StatCard
+            label={t("sales.method")}
+            value={demand.confidence}
+            hint={demand.method}
+            icon={<TrendingUp className="size-4" />}
+            tone="default"
+          />
         </section>
       )}
 
       <section className="surface-card p-5">
-        <h2 className="font-display text-lg font-semibold">Add a sales record</h2>
+        <h2 className="font-display text-lg font-semibold">{t("sales.addSalesRecord")}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{t("sales.explanation")}</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-5">
-          <Field label="Date" error={errors["date"]}>
+          <Field label={t("sales.date")} error={errors["date"]}>
             <Input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
           </Field>
-          <Field label="Product" error={errors["productId"]}>
+          <Field label={t("sales.product")} error={errors["productId"]}>
             <Select
               value={form.productId || activeProduct?.id || ""}
               onValueChange={(v) => set("productId", v)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select" />
+                <SelectValue placeholder={t("common.select")} />
               </SelectTrigger>
               <SelectContent>
                 {products.map((p) => (
@@ -182,14 +199,14 @@ function SalesPage() {
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Location" error={errors["location"]}>
+          <Field label={t("sales.location")} error={errors["location"]}>
             <Input
               value={form.location}
               onChange={(e) => set("location", e.target.value)}
-              placeholder="Village / market"
+              placeholder={t("sales.locationHint")}
             />
           </Field>
-          <Field label="Quantity sold" error={errors["quantity"]}>
+          <Field label={t("sales.quantitySold")} error={errors["quantity"]}>
             <Input
               type="number"
               min={0}
@@ -199,7 +216,7 @@ function SalesPage() {
           </Field>
           <div className="flex items-end">
             <Button className="h-11 w-full" onClick={addRecord}>
-              <Plus className="size-4" /> Add
+              <Plus className="size-4" /> {t("common.add")}
             </Button>
           </div>
         </div>
@@ -208,12 +225,12 @@ function SalesPage() {
       <section className="mt-5 surface-card p-5">
         <Tabs defaultValue="monthly">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-display text-lg font-semibold">Sales charts</h2>
+            <h2 className="font-display text-lg font-semibold">{t("sales.salesCharts")}</h2>
             <TabsList>
-              <TabsTrigger value="daily">Daily</TabsTrigger>
-              <TabsTrigger value="weekly">Weekly</TabsTrigger>
-              <TabsTrigger value="monthly">Monthly</TabsTrigger>
-              <TabsTrigger value="trend">Trend</TabsTrigger>
+              <TabsTrigger value="daily">{t("sales.daily")}</TabsTrigger>
+              <TabsTrigger value="weekly">{t("sales.weekly")}</TabsTrigger>
+              <TabsTrigger value="monthly">{t("sales.monthly")}</TabsTrigger>
+              <TabsTrigger value="trend">{t("sales.trend")}</TabsTrigger>
             </TabsList>
           </div>
 
@@ -269,21 +286,20 @@ function SalesPage() {
           </TabsContent>
         </Tabs>
         <p className="mt-3 text-xs text-muted-foreground">
-          Estimated Demand is calculated with a simple moving average and trend from your own sales
-          records. Safety stock used in planning: {settings.safetyStockPercent}%.
+          {t("sales.calculatedWithMovingAverage")} {settings.safetyStockPercent}%.
         </p>
       </section>
 
       <section className="mt-5 surface-card p-5">
-        <h2 className="font-display text-lg font-semibold">Sales records</h2>
+        <h2 className="font-display text-lg font-semibold">{t("sales.salesRecords")}</h2>
         <div className="mt-3 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead className="text-right">Quantity</TableHead>
+                <TableHead>{t("sales.date")}</TableHead>
+                <TableHead>{t("sales.product")}</TableHead>
+                <TableHead>{t("sales.location")}</TableHead>
+                <TableHead className="text-right">{t("sales.quantitySold")}</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -291,7 +307,7 @@ function SalesPage() {
               {rows.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
-                    No sales records yet.
+                    {t("sales.noSalesRecords")}
                   </TableCell>
                 </TableRow>
               )}
@@ -309,9 +325,9 @@ function SalesPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        aria-label="Delete record"
+                        aria-label={t("sales.deleteRecord")}
                         onClick={() => {
-                          void removeSale(s.id).catch((error) => toast.error(error instanceof Error ? error.message : "Unable to remove sales record"));
+                          void removeSale(s.id).catch((error) => toast.error(error instanceof Error ? error.message : t("common.error")));
                         }}
                       >
                         <Trash2 className="size-4 text-destructive" />

@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { StatusPill } from "@/components/stat-card";
 import { useStore } from "@/lib/ruralplan/store";
+import { useTranslation } from "@/i18n/useTranslation";
 import { buildAlerts } from "@/lib/ruralplan/alerts";
 
 export const Route = createFileRoute("/alerts")({
@@ -35,6 +36,7 @@ const LABEL: Record<string, string> = {
 };
 
 function AlertsPage() {
+  const { t } = useTranslation();
   const { products, materials, sales, settings } = useStore();
   const alerts = useMemo(
     () =>
@@ -52,14 +54,14 @@ function AlertsPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Alerts"
-        description="These alerts are generated from your products, stock levels, raw materials, sales history and weather."
+        title={t("alerts.title")}
+        description={t("alerts.description")}
       />
       <div className="space-y-3">
         {alerts.map((a) => (
           <article key={a.id} className="surface-card flex flex-col gap-2 p-5 sm:flex-row sm:items-start sm:gap-4">
             <StatusPill level={a.level === "weather" ? "weather" : a.level}>
-              {LABEL[a.level] ?? a.level}
+              {a.level === "red" ? t("alerts.urgent") : a.level === "yellow" ? t("alerts.attention") : a.level === "green" ? t("alerts.allGood") : a.level === "blue" ? t("alerts.information") : t("alerts.weather")}
             </StatusPill>
             <div>
               <p className="font-display text-base font-semibold">{a.title}</p>

@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore } from "@/lib/ruralplan/store";
-import { computePlan, estimateDemand, materialFor } from "@/lib/ruralplan/engine";
+import { useTranslation } from "@/i18n/useTranslation";
+import { computePlan, estimateDemand, materialFor, analyzeResourceConstraints } from "@/lib/ruralplan/engine";
 import { getWeather, weatherFactor } from "@/lib/ruralplan/weather";
 
 export const Route = createFileRoute("/planner")({
@@ -42,6 +43,7 @@ const SLOWDOWN: Record<string, number> = {
 };
 
 function Planner() {
+  const { t } = useTranslation();
   const { products, materials, sales, settings, addProduction, updateProduct, saveRecommendation } = useStore();
   const [productId, setProductId] = useState("");
   const product = products.find((p) => p.id === productId) ?? products[0];
@@ -82,9 +84,9 @@ function Planner() {
   if (!product) {
     return (
       <AppShell>
-        <PageHeader title="Production Planner" description="Add a product first." />
+        <PageHeader title={t("planner.title")} description={t("planner.noProducts")} />
         <div className="surface-card p-8 text-center text-sm text-muted-foreground">
-          Go to the Products page and add a product to use the planner.
+          {t("planner.noProductsDesc")}
         </div>
       </AppShell>
     );
@@ -123,25 +125,25 @@ function Planner() {
         sold: 0,
       });
       await updateProduct(product.id, { currentStock: num(form.currentStock) });
-      toast.success("Production plan saved to production history");
+      toast.success(t("planner.savePlanToProduction"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to save production plan");
+      toast.error(error instanceof Error ? error.message : t("common.error"));
     }
   };
 
   return (
     <AppShell>
       <PageHeader
-        title="Production Planner"
-        description="Enter your current situation and get a clear recommended production quantity with the reason behind it."
+        title={t("planner.title")}
+        description={t("planner.description")}
       />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <section className="surface-card p-5 sm:p-6">
-          <h2 className="font-display text-lg font-semibold">Your details</h2>
+          <h2 className="font-display text-lg font-semibold">{t("planner.yourDetails")}</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <Field label="Select product">
+              <Field label={t("planner.selectProduct")}>
                 <Select value={product.id} onValueChange={setProductId}>
                   <SelectTrigger className="h-12">
                     <SelectValue />
@@ -156,10 +158,10 @@ function Planner() {
                 </Select>
               </Field>
             </div>
-            <Field label={`Current stock (${product.unit})`}>
+            <Field label={`${t("planner.currentStock")} (${product.unit})`}>
               <Input type="number" min={0} value={form.currentStock} onChange={(e) => set("currentStock", e.target.value)} />
             </Field>
-            <Field label={`Expected demand (${product.unit})`} hint="Estimated from your sales history">
+            <Field label={`${t("planner.expectedDemand")} (${product.unit})`} hint={t("planner.expectedDemandHint")}>
               <Input
                 type="number"
                 min={0}
@@ -167,7 +169,7 @@ function Planner() {
                 onChange={(e) => set("expectedDemand", e.target.value)}
               />
             </Field>
-            <Field label={`Production capacity per day (${product.unit})`}>
+            <Field label={`${t("planner.productionCapacityPerDay")} (${product.unit})`}>
               <Input
                 type="number"
                 min={0}
@@ -175,7 +177,7 @@ function Planner() {
                 onChange={(e) => set("capacityPerDay", e.target.value)}
               />
             </Field>
-            <Field label={`${product.rawMaterial} available (${product.rawUnit})`}>
+            <Field label={`${product.rawMaterial} ${t("planner.available")} (${product.rawUnit})`}>
               <Input
                 type="number"
                 min={0}
@@ -183,10 +185,10 @@ function Planner() {
                 onChange={(e) => set("rawMaterialAvailable", e.target.value)}
               />
             </Field>
-            <Field label="Number of workers">
+            <Field label={t("planner.numberOfWorkers")}>
               <Input type="number" min={0} value={form.workers} onChange={(e) => set("workers", e.target.value)} />
             </Field>
-            <Field label="Production days available">
+            <Field label={t("planner.productionDaysAvailable")}>
               <Input
                 type="number"
                 min={0}
@@ -194,7 +196,7 @@ function Planner() {
                 onChange={(e) => set("productionDays", e.target.value)}
               />
             </Field>
-            <Field label="Weather condition" hint="Affects daily output only, not demand">
+            <Field label={t("planner.weatherCondition")} hint={t("planner.weatherConditionHint")}>
               <Select value={form.weather} onValueChange={(v) => set("weather", v)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -208,7 +210,7 @@ function Planner() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Safety stock (%)">
+            <Field label={t("planner.safetyStock")} hint={t("planner.safetyStockHint")}>
               <Input type="number" min={0} max={100} value={form.safety} onChange={(e) => set("safety", e.target.value)} />
             </Field>
           </div>
@@ -217,34 +219,34 @@ function Planner() {
         <section className="space-y-4">
           <div className="surface-card overflow-hidden">
             <div className="hero-gradient p-6 text-sidebar-foreground">
-              <p className="text-sm opacity-90">Recommended Production</p>
+              <p className="text-sm opacity-90">{t("planner.recommendedProduction")}</p>
               <p className="mt-1 font-display text-4xl font-semibold">
                 {plan.requiredProduction} {product.unit}
               </p>
               <p className="mt-3 text-sm opacity-90">{plan.reason}</p>
             </div>
             <dl className="grid grid-cols-2 gap-4 p-5 text-sm">
-              <Row label="Expected demand" value={`${num(form.expectedDemand)} ${product.unit}`} />
-              <Row label="Current stock" value={`${num(form.currentStock)} ${product.unit}`} />
-              <Row label="Safety stock" value={`${plan.safetyStock} ${product.unit}`} />
-              <Row label="Required" value={`${plan.requiredProduction} ${product.unit}`} />
+              <Row label={t("planner.expectedDemand")} value={`${num(form.expectedDemand)} ${product.unit}`} />
+              <Row label={t("planner.currentStock")} value={`${num(form.currentStock)} ${product.unit}`} />
+              <Row label={t("planner.safetyStock")} value={`${plan.safetyStock} ${product.unit}`} />
+              <Row label={t("common.required")} value={`${plan.requiredProduction} ${product.unit}`} />
               <Row
-                label="Raw material needed"
+                label={t("planner.rawMaterialNeeded")}
                 value={`${plan.rawRequirement} ${product.rawUnit} of ${product.rawMaterial}`}
               />
-              <Row label="Daily output used" value={`${plan.effectiveDailyCapacity} ${product.unit}/day`} />
-              <Row label="Production days required" value={`${plan.daysNeeded} day(s)`} />
-              <Row label="Possible now" value={`${plan.achievableProduction} ${product.unit}`} />
+              <Row label={t("planner.dailyOutputUsed")} value={`${plan.effectiveDailyCapacity} ${product.unit}/day`} />
+              <Row label={t("planner.productionDaysRequired")} value={`${plan.daysNeeded} day(s)`} />
+              <Row label={t("planner.possibleNow")} value={`${plan.achievableProduction} ${product.unit}`} />
             </dl>
             <div className="border-t border-border p-5">
               <Button size="lg" className="h-12 w-full" onClick={savePlan}>
-                Save this plan to production history
+                {t("planner.savePlanToProduction")}
               </Button>
             </div>
           </div>
 
           <div className="surface-card p-5">
-            <h2 className="font-display text-lg font-semibold">Why this recommendation?</h2>
+            <h2 className="font-display text-lg font-semibold">{t("planner.whyThisRecommendation")}</h2>
             <ul className="mt-3 space-y-3">
               {plan.warnings.map((w, i) => (
                 <li key={`${w.title}-${i}`} className="flex gap-3">
@@ -265,13 +267,15 @@ function Planner() {
               ))}
             </ul>
             <div className="mt-4 flex flex-wrap gap-2">
-              {plan.overproductionRisk && <StatusPill level="yellow">Overproduction Risk</StatusPill>}
-              {plan.shortageRisk && <StatusPill level="red">Shortage Risk</StatusPill>}
+              {plan.overproductionRisk && <StatusPill level="yellow">{t("planner.overproductionRisk")}</StatusPill>}
+              {plan.shortageRisk && <StatusPill level="red">{t("planner.shortageRisk")}</StatusPill>}
               {!plan.overproductionRisk && !plan.shortageRisk && (
-                <StatusPill level="green">No overproduction or shortage risk</StatusPill>
+                <StatusPill level="green">{t("planner.noRisk")}</StatusPill>
               )}
             </div>
           </div>
+
+          {products.length > 1 && <CrossProductResourcesCard products={products} materials={materials} sales={sales} settings={settings} />}
         </section>
       </div>
     </AppShell>
@@ -283,6 +287,61 @@ function Row({ label, value }: { label: string; value: string }) {
     <div>
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="font-medium">{value}</dd>
+    </div>
+  );
+}
+
+interface CrossProductResourcesProps {
+  products: any[];
+  materials: any[];
+  sales: any[];
+  settings: any;
+}
+
+function CrossProductResourcesCard({
+  products,
+  materials,
+  sales,
+  settings,
+}: CrossProductResourcesProps) {
+  const productionPlans = useMemo(() => {
+    const plans = new Map<string, number>();
+    for (const p of products) {
+      const demand = estimateDemand(sales, p.id);
+      const safety = Math.round((demand.estimate * settings.safetyStockPercent) / 100);
+      const need = Math.max(0, demand.estimate - p.currentStock + safety);
+      if (need > 0) plans.set(p.id, need);
+    }
+    return plans;
+  }, [products, sales, settings.safetyStockPercent]);
+
+  const resourceAnalysis = useMemo(
+    () => analyzeResourceConstraints(products, materials, productionPlans),
+    [products, materials, productionPlans],
+  );
+
+  if (!resourceAnalysis.hasShortfall) return null;
+
+  return (
+    <div className="surface-card p-5">
+      <div className="flex items-center gap-2">
+        <TriangleAlert className="size-5 text-destructive" />
+        <h2 className="font-display text-lg font-semibold">Cross-Product Resource Alert</h2>
+      </div>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Your planned production across all products requires more raw materials than available.
+      </p>
+      <ul className="mt-3 space-y-2">
+        {resourceAnalysis.warnings.map((w) => (
+          <li key={w.material} className="flex gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0 text-destructive" />
+            <div>
+              <p className="font-medium">{w.material}</p>
+              <p className="text-xs text-muted-foreground">{w.suggestion}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

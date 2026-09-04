@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore } from "@/lib/ruralplan/store";
+import { useTranslation } from "@/i18n/useTranslation";
 import { MAHARASHTRA_DISTRICTS } from "@/lib/ruralplan/weather";
 
 export const Route = createFileRoute("/settings")({
@@ -31,6 +32,7 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
+  const { t } = useTranslation();
   const { profile, settings, signIn, signOut, updateSettings, loadDemoData, clearAllData } = useStore();
   const navigate = useNavigate();
   const [name, setName] = useState(profile?.name ?? "");
@@ -40,7 +42,7 @@ function SettingsPage() {
 
   const saveProfile = async () => {
     if (name.trim().length < 2) {
-      toast.error("Please enter your name");
+      toast.error(t("common.error"));
       return;
     }
     try {
@@ -53,27 +55,27 @@ function SettingsPage() {
       });
       const pct = Math.min(100, Math.max(0, Number(safety) || 0));
       await updateSettings({ village: village.trim(), district, safetyStockPercent: pct });
-      toast.success("Settings saved");
+      toast.success(t("settings.settingsSaved"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to save settings");
+      toast.error(error instanceof Error ? error.message : t("common.error"));
     }
   };
 
   return (
     <AppShell>
-      <PageHeader title="Settings" description="Your profile, planning defaults and demo data." />
+      <PageHeader title={t("settings.title")} description={t("settings.description")} />
 
       <div className="grid gap-5 lg:grid-cols-2">
         <section className="surface-card p-5">
-          <h2 className="font-display text-lg font-semibold">Profile</h2>
+          <h2 className="font-display text-lg font-semibold">{t("settings.profile")}</h2>
           <div className="mt-4 grid gap-4">
-            <Field label="Name">
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+            <Field label={t("settings.name")}>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("settings.yourName")} />
             </Field>
-            <Field label="Village / Location">
+            <Field label={t("settings.villageLocation")}>
               <Input value={village} onChange={(e) => setVillage(e.target.value)} />
             </Field>
-            <Field label="District">
+            <Field label={t("settings.district")}>
               <Select value={district} onValueChange={setDistrict}>
                 <SelectTrigger>
                   <SelectValue />
@@ -87,10 +89,10 @@ function SettingsPage() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="State">
+            <Field label={t("settings.state")}>
               <Input value={profile?.state ?? "Maharashtra"} readOnly />
             </Field>
-            <Field label="Safety stock (%)" hint="Extra stock kept above expected demand">
+            <Field label={t("settings.safetyStockPercent")} hint={t("settings.safetyStockHint")}>
               <Input
                 type="number"
                 min={0}
@@ -100,35 +102,34 @@ function SettingsPage() {
               />
             </Field>
             <Button className="h-12" onClick={saveProfile}>
-              Save settings
+              {t("settings.saveSettings")}
             </Button>
           </div>
         </section>
 
         <section className="surface-card p-5">
-          <h2 className="font-display text-lg font-semibold">Data</h2>
+          <h2 className="font-display text-lg font-semibold">{t("settings.data")}</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            RuralPlan stores your products, sales, raw materials and production records in your
-            secure account. You can reload sample data or start with a clean account.
+            {t("settings.ruralPlanStores")}
           </p>
           <div className="mt-4 grid gap-3">
             <Button
               variant="outline"
               className="h-12"
               onClick={() => {
-                void loadDemoData().then(() => toast.success("Demo data reloaded")).catch((error) => toast.error(error instanceof Error ? error.message : "Unable to load demo data"));
+                void loadDemoData().then(() => toast.success(t("settings.demoDataReloaded"))).catch((error) => toast.error(error instanceof Error ? error.message : t("common.error")));
               }}
             >
-              Reload demo data
+              {t("settings.reloadDemoData")}
             </Button>
             <Button
               variant="outline"
               className="h-12"
               onClick={() => {
-                void clearAllData().then(() => toast.success("All data cleared")).catch((error) => toast.error(error instanceof Error ? error.message : "Unable to clear data"));
+                void clearAllData().then(() => toast.success(t("settings.allDataCleared"))).catch((error) => toast.error(error instanceof Error ? error.message : t("common.error")));
               }}
             >
-              Delete all data and start fresh
+              {t("settings.deleteAllData")}
             </Button>
             <Button
               variant="ghost"
@@ -137,7 +138,7 @@ function SettingsPage() {
                 void signOut().then(() => navigate({ to: "/" }));
               }}
             >
-              Log out
+              {t("common.logout")}
             </Button>
           </div>
         </section>

@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, TrendingUp } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { ColdStartSetup } from "@/components/cold-start-setup";
 import { Field } from "@/components/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore } from "@/lib/ruralplan/store";
+import { useTranslation } from "@/i18n/useTranslation";
 import type { Product } from "@/lib/ruralplan/types";
+import type { ColdStartInput } from "@/lib/ruralplan/engine";
 
 export const Route = createFileRoute("/products")({
   head: () => ({
@@ -89,11 +92,14 @@ function toForm(p: Product): FormState {
 }
 
 function ProductsPage() {
+  const { t } = useTranslation();
   const { products, addProduct, updateProduct, removeProduct } = useStore();
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(blank);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [coldStartOpen, setColdStartOpen] = useState(false);
+  const [coldStartProduct, setColdStartProduct] = useState<Product | null>(null);
 
   const set = (k: keyof FormState, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -129,38 +135,56 @@ function ProductsPage() {
       const map: Record<string, string> = {};
       for (const issue of parsed.error.issues) map[String(issue.path[0])] = issue.message;
       setErrors(map);
-      toast.error("Please correct the highlighted fields");
+      toast.error(t("products.correctHighlightedFields"));
       return;
     }
     try {
       if (editId) {
         await updateProduct(editId, parsed.data);
-        toast.success("Product updated");
+        toast.success(t("products.productUpdated"));
       } else {
         await addProduct(parsed.data);
-        toast.success("Product added");
+        toast.success(t("products.productAdded"));
       }
       setOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to save product");
+      toast.error(error instanceof Error ? error.message : t("common.error"));
+    }
+  }
+
+  async function handleColdStartSave(input: ColdStartInput) {
+    if (!coldStartProduct) return;
+    try {
+      await updateProduct(coldStartProduct.id, {
+        demandMode: "cold_start",
+        potentialCustomers: input.potentialCustomers,
+        conversionRate: input.conversionRate,
+        purchaseFrequency: input.purchaseFrequency,
+        avgPurchaseQuantity: input.avgPurchaseQuantity,
+        isSeasonal: input.isSeasonal,
+        seasonStartMonth: input.seasonStartMonth,
+        seasonEndMonth: input.seasonEndMonth,
+      });
+    } catch (error) {
+      throw error instanceof Error ? error : new Error("Failed to save Cold Start settings");
     }
   }
 
   return (
     <AppShell>
       <PageHeader
-        title="Products"
-        description="Add any fruit or food product you make. These details are used by the production planner."
+        title={t("products.title")}
+        description={t("products.description")}
         action={
           <Button size="lg" className="h-12" onClick={openNew}>
-            <Plus className="size-5" /> Add product
+            <Plus className="size-5" /> {t("products.addProduct")}
           </Button>
         }
       />
 
       {products.length === 0 ? (
         <div className="surface-card p-8 text-center text-sm text-muted-foreground">
-          No products yet. Tap “Add product” to create your first one.
+          {t("products.noProducts")}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -170,21 +194,33 @@ function ProductsPage() {
                 <div>
                   <h2 className="font-display text-lg font-semibold">{p.name}</h2>
                   <p className="text-sm text-muted-foreground">
-                    Raw material: {p.rawMaterial} · {p.rawPerUnit} {p.rawUnit} per {p.unit}
+                    {t("products.rawMaterialFruit")}: {p.rawMaterial} · {p.rawPerUnit} {p.rawUnit} per {p.unit}
                   </p>
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="outline" size="icon" aria-label="Edit" onClick={() => openEdit(p)}>
+                  <Button variant="outline" size="icon" aria-label={t("common.edit")} onClick={() => openEdit(p)}>
                     <Pencil className="size-4" />
                   </Button>
                   <Button
                     variant="outline"
                     size="icon"
-                    aria-label="Delete"
+                    aria-label="Setup Cold Start"
+                    title="Setup initial demand estimate"
+                    onClick={() => {
+                      setColdStartProduct(p);
+                      setColdStartOpen(true);
+                    }}
+                  >
+                    <TrendingUp className="size-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label={t("common.delete")}
                     onClick={() => {
                       void removeProduct(p.id)
-                        .then(() => toast.success(`${p.name} deleted`))
-                        .catch((error) => toast.error(error instanceof Error ? error.message : "Unable to delete product"));
+                        .then(() => toast.success(t("products.productDeleted")))
+                        .catch((error) => toast.error(error instanceof Error ? error.message : t("common.error")));
                     }}
                   >
                     <Trash2 className="size-4 text-destructive" />
@@ -192,12 +228,12 @@ function ProductsPage() {
                 </div>
               </div>
               <dl className="mt-4 grid grid-cols-2 gap-y-2 text-sm">
-                <Detail label="Current stock" value={`${p.currentStock} ${p.unit}`} />
-                <Detail label="Minimum stock" value={`${p.minStock} ${p.unit}`} />
-                <Detail label="Capacity / day" value={`${p.capacityPerDay} ${p.unit}`} />
-                <Detail label="Workers" value={String(p.workers)} />
-                <Detail label="Shelf life" value={`${p.shelfLifeDays} days`} />
-                <Detail label="Production cost" value={p.productionCost ? `₹${p.productionCost}` : "—"} />
+                <Detail label={t("products.currentStock")} value={`${p.currentStock} ${p.unit}`} />
+                <Detail label={t("products.minimumStockLevel")} value={`${p.minStock} ${p.unit}`} />
+                <Detail label={t("products.productionCapacityPerDay")} value={`${p.capacityPerDay} ${p.unit}`} />
+                <Detail label={t("products.availableWorkers")} value={String(p.workers)} />
+                <Detail label={t("products.shelfLifeDays")} value={`${p.shelfLifeDays} days`} />
+                <Detail label={t("products.productionCost")} value={p.productionCost ? `₹${p.productionCost}` : "—"} />
               </dl>
             </article>
           ))}
@@ -207,23 +243,23 @@ function ProductsPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editId ? "Edit product" : "Add product"}</DialogTitle>
+            <DialogTitle>{editId ? t("products.editProductDialog") : t("products.addProductDialog")}</DialogTitle>
             <DialogDescription>
-              Enter the production details for this product. All quantities must be zero or more.
+              {t("products.dialogDescription")}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Product name" error={errors["name"]}>
-              <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Lemon Pickle" />
+            <Field label={t("products.productName")} error={errors["name"]}>
+              <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder={t("products.exampleProductName")} />
             </Field>
-            <Field label="Raw material / fruit" error={errors["rawMaterial"]}>
+            <Field label={t("products.rawMaterialFruit")} error={errors["rawMaterial"]}>
               <Input
                 value={form.rawMaterial}
                 onChange={(e) => set("rawMaterial", e.target.value)}
-                placeholder="e.g. Lemon"
+                placeholder={t("products.exampleRawMaterial")}
               />
             </Field>
-            <Field label="Unit" error={errors["unit"]}>
+            <Field label={t("products.unit")} error={errors["unit"]}>
               <Select value={form.unit} onValueChange={(v) => set("unit", v)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -237,7 +273,7 @@ function ProductsPage() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Raw material unit" error={errors["rawUnit"]}>
+            <Field label={t("products.rawMaterialUnit")} error={errors["rawUnit"]}>
               <Select value={form.rawUnit} onValueChange={(v) => set("rawUnit", v)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -251,7 +287,7 @@ function ProductsPage() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Production capacity per day" error={errors["capacityPerDay"]}>
+            <Field label={t("products.productionCapacityPerDay")} error={errors["capacityPerDay"]}>
               <Input
                 type="number"
                 min={0}
@@ -259,10 +295,10 @@ function ProductsPage() {
                 onChange={(e) => set("capacityPerDay", e.target.value)}
               />
             </Field>
-            <Field label="Minimum stock level" error={errors["minStock"]}>
+            <Field label={t("products.minimumStockLevel")} error={errors["minStock"]}>
               <Input type="number" min={0} value={form.minStock} onChange={(e) => set("minStock", e.target.value)} />
             </Field>
-            <Field label="Current stock" error={errors["currentStock"]}>
+            <Field label={t("products.currentStock")} error={errors["currentStock"]}>
               <Input
                 type="number"
                 min={0}
@@ -271,9 +307,9 @@ function ProductsPage() {
               />
             </Field>
             <Field
-              label="Production cost (optional)"
+              label={t("products.productionCost")}
               error={errors["productionCost"]}
-              hint="Used only for your own record"
+              hint={t("products.productionCostHint")}
             >
               <Input
                 type="number"
@@ -282,7 +318,7 @@ function ProductsPage() {
                 onChange={(e) => set("productionCost", e.target.value)}
               />
             </Field>
-            <Field label="Shelf life (days)" error={errors["shelfLifeDays"]}>
+            <Field label={t("products.shelfLifeDays")} error={errors["shelfLifeDays"]}>
               <Input
                 type="number"
                 min={0}
@@ -290,13 +326,13 @@ function ProductsPage() {
                 onChange={(e) => set("shelfLifeDays", e.target.value)}
               />
             </Field>
-            <Field label="Available workers" error={errors["workers"]}>
+            <Field label={t("products.availableWorkers")} error={errors["workers"]}>
               <Input type="number" min={0} value={form.workers} onChange={(e) => set("workers", e.target.value)} />
             </Field>
             <Field
-              label="Raw material per unit"
+              label={t("products.rawMaterialPerUnit")}
               error={errors["rawPerUnit"]}
-              hint={`How much ${form.rawUnit} is needed for one ${form.unit}`}
+              hint={t("products.rawMaterialPerUnitHint")}
             >
               <Input
                 type="number"
@@ -309,12 +345,21 @@ function ProductsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
-            <Button onClick={save}>{editId ? "Save changes" : "Add product"}</Button>
+            <Button onClick={save}>{editId ? t("products.saveBtnText") : t("products.addProduct")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {coldStartProduct && (
+        <ColdStartSetup
+          product={coldStartProduct}
+          open={coldStartOpen}
+          onOpenChange={setColdStartOpen}
+          onSave={handleColdStartSave}
+        />
+      )}
     </AppShell>
   );
 }

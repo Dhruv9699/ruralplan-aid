@@ -8,6 +8,7 @@ import { StatCard } from "@/components/stat-card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore } from "@/lib/ruralplan/store";
+import { useTranslation } from "@/i18n/useTranslation";
 import { MAHARASHTRA_DISTRICTS, getWeather } from "@/lib/ruralplan/weather";
 
 export const Route = createFileRoute("/weather")({
@@ -40,6 +41,7 @@ function iconFor(condition: string) {
 }
 
 function WeatherPage() {
+  const { t } = useTranslation();
   const { settings, updateSettings } = useStore();
   const [district, setDistrict] = useState(settings.district);
   const [location, setLocation] = useState(settings.village);
@@ -49,18 +51,18 @@ function WeatherPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Weather"
-        description="Weather is used only as a supporting factor for production, storage and raw material planning. It does not predict demand."
+        title={t("weather.title")}
+        description={t("weather.description")}
       />
 
       <section className="surface-card p-5">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="District">
+          <Field label={t("settings.district")}>
             <Select
               value={district}
               onValueChange={(v) => {
                 setDistrict(v);
-                void updateSettings({ district: v }).catch((error) => toast.error(error instanceof Error ? error.message : "Unable to save district"));
+                void updateSettings({ district: v }).catch((error) => toast.error(error instanceof Error ? error.message : t("common.error")));
               }}
             >
               <SelectTrigger className="h-12">
@@ -75,15 +77,15 @@ function WeatherPage() {
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Village / Location">
+          <Field label={t("settings.villageLocation")}>
             <Input
               className="h-12"
               value={location}
               onChange={(e) => {
                 setLocation(e.target.value);
-                void updateSettings({ village: e.target.value }).catch((error) => toast.error(error instanceof Error ? error.message : "Unable to save location"));
+                void updateSettings({ village: e.target.value }).catch((error) => toast.error(error instanceof Error ? error.message : t("common.error")));
               }}
-              placeholder="Village or town"
+              placeholder={t("auth.villageOrTown")}
             />
           </Field>
         </div>
@@ -95,20 +97,20 @@ function WeatherPage() {
 
       <section className="mt-5 grid gap-4 sm:grid-cols-3">
         <StatCard
-          label="Current temperature"
+          label={t("weather.temperature")}
           value={`${report.today.tempC}°C`}
           hint={`${district}${location ? `, ${location}` : ""}`}
           icon={<Thermometer className="size-4" />}
         />
         <StatCard
-          label="Rain probability"
+          label={t("weather.todayInYourArea")}
           value={`${report.today.rainChance}%`}
           hint="Today"
           icon={<CloudRain className="size-4" />}
           tone={report.today.rainChance >= 60 ? "warning" : "info"}
         />
         <StatCard
-          label="Condition"
+          label={t("weather.condition")}
           value={report.today.condition}
           hint={`Humidity ${report.today.humidity}%`}
           icon={iconFor(report.today.condition)}
@@ -136,7 +138,7 @@ function WeatherPage() {
       </section>
 
       <section className="mt-5 surface-card p-5">
-        <h2 className="font-display text-lg font-semibold">Production advice</h2>
+        <h2 className="font-display text-lg font-semibold">{t("weather.impact")}</h2>
         <p className="mt-2 text-sm text-muted-foreground">{report.productionNote}</p>
       </section>
     </AppShell>

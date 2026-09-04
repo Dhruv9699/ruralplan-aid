@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useStore } from "@/lib/ruralplan/store";
+import { useTranslation } from "@/i18n/useTranslation";
 import { materialStatus } from "@/lib/ruralplan/engine";
 
 export const Route = createFileRoute("/inventory")({
@@ -42,6 +43,7 @@ const schema = z.object({
 });
 
 function InventoryPage() {
+  const { t } = useTranslation();
   const { materials, addMaterial, updateMaterial, removeMaterial } = useStore();
   const [form, setForm] = useState({
     name: "",
@@ -73,16 +75,16 @@ function InventoryPage() {
     void addMaterial(parsed.data)
       .then(() => {
         setForm({ name: "", unit: "kg", currentQty: "", requiredQty: "", minLevel: "" });
-        toast.success("Raw material added");
+        toast.success(t("inventory.rawMaterialAdded"));
       })
-      .catch((error) => toast.error(error instanceof Error ? error.message : "Unable to add raw material"));
+      .catch((error) => toast.error(error instanceof Error ? error.message : t("common.error")));
   };
 
   return (
     <AppShell>
       <PageHeader
-        title="Raw Materials"
-        description="Keep the quantities updated so the planner knows what you can actually produce."
+        title={t("inventory.title")}
+        description={t("inventory.description")}
       />
 
       {insufficient.length > 0 && (
@@ -90,12 +92,12 @@ function InventoryPage() {
           <TriangleAlert className="mt-0.5 size-5 shrink-0 text-destructive" />
           <div>
             <p className="text-sm font-semibold text-destructive">
-              Production may be affected because{" "}
+              {t("inventory.productionMayBeAffected")}{" "}
               {insufficient.map((m) => m.name.toLowerCase()).join(", ")}{" "}
-              {insufficient.length === 1 ? "is" : "are"} insufficient.
+              {insufficient.length === 1 ? t("inventory.isInsufficient") : t("inventory.areInsufficient")}
             </p>
             <p className="text-sm text-muted-foreground">
-              Arrange more material or plan a smaller batch.
+              {t("inventory.arrangeMoreMaterial")}
             </p>
           </div>
         </div>
@@ -111,30 +113,30 @@ function InventoryPage() {
                 <div>
                   <h2 className="font-display text-lg font-semibold">{m.name}</h2>
                   <p className="text-sm text-muted-foreground">
-                    Minimum level {m.minLevel} {m.unit}
+                    {t("inventory.minimumLevel")} {m.minLevel} {m.unit}
                   </p>
                 </div>
                 <StatusPill level={state.status}>{state.label}</StatusPill>
               </div>
               <Progress value={pct} className="mt-4" />
               <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                <Field label={`Current (${m.unit})`}>
+                <Field label={`${t("inventory.current")} (${m.unit})`}>
                   <Input
                     type="number"
                     min={0}
                     value={m.currentQty}
                     onChange={(e) =>
-                      void updateMaterial(m.id, { currentQty: Math.max(0, Number(e.target.value) || 0) }).catch((error) => toast.error(error instanceof Error ? error.message : "Unable to update inventory"))
+                      void updateMaterial(m.id, { currentQty: Math.max(0, Number(e.target.value) || 0) }).catch((error) => toast.error(error instanceof Error ? error.message : t("common.error")))
                     }
                   />
                 </Field>
-                <Field label={`Required (${m.unit})`}>
+                <Field label={`${t("inventory.required")} (${m.unit})`}>
                   <Input
                     type="number"
                     min={0}
                     value={m.requiredQty}
                     onChange={(e) =>
-                      void updateMaterial(m.id, { requiredQty: Math.max(0, Number(e.target.value) || 0) }).catch((error) => toast.error(error instanceof Error ? error.message : "Unable to update inventory"))
+                      void updateMaterial(m.id, { requiredQty: Math.max(0, Number(e.target.value) || 0) }).catch((error) => toast.error(error instanceof Error ? error.message : t("common.error")))
                     }
                   />
                 </Field>
@@ -144,11 +146,11 @@ function InventoryPage() {
                 className="mt-3 w-full"
                 onClick={() => {
                   void removeMaterial(m.id)
-                    .then(() => toast.success(`${m.name} removed`))
-                    .catch((error) => toast.error(error instanceof Error ? error.message : "Unable to remove material"));
+                    .then(() => toast.success(t("inventory.materialRemoved")))
+                    .catch((error) => toast.error(error instanceof Error ? error.message : t("common.error")));
                 }}
               >
-                <Trash2 className="size-4 text-destructive" /> Remove
+                <Trash2 className="size-4 text-destructive" /> {t("common.remove")}
               </Button>
             </article>
           );
@@ -156,21 +158,21 @@ function InventoryPage() {
       </div>
 
       <section className="mt-5 surface-card p-5">
-        <h2 className="font-display text-lg font-semibold">Add a raw material</h2>
+        <h2 className="font-display text-lg font-semibold">{t("inventory.addRawMaterial")}</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-6">
           <div className="sm:col-span-2">
-            <Field label="Material name" error={errors["name"]}>
+            <Field label={t("inventory.materialName")} error={errors["name"]}>
               <Input
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
-                placeholder="e.g. Mustard oil"
+                placeholder={t("inventory.exampleMaterialName")}
               />
             </Field>
           </div>
-          <Field label="Unit" error={errors["unit"]}>
+          <Field label={t("inventory.unit")} error={errors["unit"]}>
             <Input value={form.unit} onChange={(e) => set("unit", e.target.value)} placeholder="kg" />
           </Field>
-          <Field label="Current quantity" error={errors["currentQty"]}>
+          <Field label={t("inventory.currentQuantity")} error={errors["currentQty"]}>
             <Input
               type="number"
               min={0}
@@ -178,7 +180,7 @@ function InventoryPage() {
               onChange={(e) => set("currentQty", e.target.value)}
             />
           </Field>
-          <Field label="Required quantity" error={errors["requiredQty"]}>
+          <Field label={t("inventory.requiredQuantity")} error={errors["requiredQty"]}>
             <Input
               type="number"
               min={0}
@@ -186,7 +188,7 @@ function InventoryPage() {
               onChange={(e) => set("requiredQty", e.target.value)}
             />
           </Field>
-          <Field label="Minimum level" error={errors["minLevel"]}>
+          <Field label={t("inventory.minimumLevel")} error={errors["minLevel"]}>
             <Input
               type="number"
               min={0}
@@ -196,7 +198,7 @@ function InventoryPage() {
           </Field>
         </div>
         <Button className="mt-4 h-12" onClick={add}>
-          <Plus className="size-4" /> Add material
+          <Plus className="size-4" /> {t("inventory.addRawMaterial")}
         </Button>
       </section>
     </AppShell>

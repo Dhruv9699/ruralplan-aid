@@ -9,6 +9,7 @@ import { Field } from "@/components/field";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore } from "@/lib/ruralplan/store";
+import { useTranslation } from "@/i18n/useTranslation";
 import { MAHARASHTRA_DISTRICTS } from "@/lib/ruralplan/weather";
 import { lovable } from "@/integrations/lovable";
 
@@ -45,7 +46,9 @@ const schema = z.object({
 function AuthPage() {
   const { register, login } = useStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [mode, setMode] = useState<"signup" | "login">("signup");
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -60,6 +63,8 @@ function AuthPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return; // Prevent duplicate submissions
+    
     const payload = mode === "login" ? { ...form, name: form.name || "RuralPlan User" } : form;
     const parsed = schema.safeParse(payload);
     if (!parsed.success) {
@@ -70,21 +75,25 @@ function AuthPage() {
     }
     setErrors({});
     const { name, email, village, district, state } = parsed.data;
+    
+    setLoading(true);
     try {
       if (mode === "signup") {
-        const confirmed = await register({ name, email, village, district, state }, parsed.data.password);
-        if (!confirmed) {
-          toast.success("Account created. Check your email to confirm, then log in.");
-          setMode("login");
-          return;
+        const registered = await register({ name, email, village, district, state }, parsed.data.password);
+        if (registered) {
+          toast.success(t("auth.accountCreatedSuccess"));
+          navigate({ to: "/dashboard" });
         }
       } else {
         await login(email, parsed.data.password);
+        toast.success(t("common.welcome"));
+        navigate({ to: "/dashboard" });
       }
-      toast.success(mode === "signup" ? "Account created" : "Welcome back");
-      navigate({ to: "/dashboard" });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to authenticate");
+      const errorMessage = error instanceof Error ? error.message : t("common.error");
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -106,50 +115,50 @@ function AuthPage() {
         <div className="surface-card p-6">
           <Tabs value={mode} onValueChange={(v) => setMode(v as "signup" | "login")}>
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="signup">{t("auth.signUp")}</TabsTrigger>
+              <TabsTrigger value="login">{t("auth.login")}</TabsTrigger>
             </TabsList>
           </Tabs>
 
           <form onSubmit={submit} className="mt-5 space-y-4">
             {mode === "signup" && (
-              <Field label="Name" error={errors["name"]}>
+              <Field label={t("auth.name")} error={errors["name"]}>
                 <Input
                   value={form.name}
                   onChange={(e) => set("name", e.target.value)}
-                  placeholder="Your full name"
+                  placeholder={t("auth.yourFullName")}
                 />
               </Field>
             )}
-            <Field label="Email" error={errors["email"]}>
+            <Field label={t("auth.email")} error={errors["email"]}>
               <Input
                 type="email"
                 value={form.email}
                 onChange={(e) => set("email", e.target.value)}
-                placeholder="you@example.com"
+                placeholder={t("auth.youExample")}
               />
             </Field>
-            <Field label="Password" error={errors["password"]}>
+            <Field label={t("auth.password")} error={errors["password"]}>
               <Input
                 type="password"
                 value={form.password}
                 onChange={(e) => set("password", e.target.value)}
-                placeholder="At least 6 characters"
+                placeholder={t("auth.atLeast6Chars")}
               />
             </Field>
             {mode === "signup" && (
               <>
-                <Field label="Village / Location" error={errors["village"]}>
+                <Field label={t("auth.village")} error={errors["village"]}>
                   <Input
                     value={form.village}
                     onChange={(e) => set("village", e.target.value)}
-                    placeholder="Village or town"
+                    placeholder={t("auth.villageOrTown")}
                   />
                 </Field>
-                <Field label="District" error={errors["district"]}>
+                <Field label={t("auth.district")} error={errors["district"]}>
                   <Select value={form.district} onValueChange={(v) => set("district", v)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select district" />
+                      <SelectValue placeholder={t("auth.selectDistrict")} />
                     </SelectTrigger>
                     <SelectContent>
                       {MAHARASHTRA_DISTRICTS.map((d) => (
@@ -160,22 +169,22 @@ function AuthPage() {
                     </SelectContent>
                   </Select>
                 </Field>
-                <Field label="State" error={errors["state"]}>
+                <Field label={t("auth.state")} error={errors["state"]}>
                   <Input value={form.state} onChange={(e) => set("state", e.target.value)} />
                 </Field>
               </>
             )}
 
-            <Button type="submit" size="lg" className="h-12 w-full">
-              {mode === "signup" ? "Create account" : "Login"}
+            <Button type="submit" size="lg" className="h-12 w-full" disabled={loading}>
+              {loading ? (mode === "signup" ? t("auth.creatingAccount") : t("auth.signingIn")) : (mode === "signup" ? t("auth.createAccount") : t("auth.login"))}
             </Button>
-            <Button type="button" variant="outline" className="h-12 w-full" onClick={googleLogin}>
-              Continue with Google
+            <Button type="button" variant="outline" className="h-12 w-full" onClick={googleLogin} disabled={loading}>
+              {t("auth.continueWithGoogle")}
             </Button>
           </form>
         </div>
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          Your products, sales, inventory and production history are stored securely in your account.
+          {t("auth.disclaimer")}
         </p>
       </div>
     </div>

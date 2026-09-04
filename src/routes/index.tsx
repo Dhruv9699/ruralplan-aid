@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BarChart3, CheckCircle2, CloudSun, Package, Scale, Sprout } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/i18n/useTranslation";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -30,22 +31,20 @@ export const Route = createFileRoute("/")({
 const BENEFITS = [
   {
     icon: Scale,
-    title: "Plan the right quantity",
-    text: "Get a clear recommended production quantity for every product you make.",
+    translationKey: "landing.featureProduction",
   },
   {
     icon: CheckCircle2,
-    title: "Avoid overproduction and shortages",
-    text: "Simple warnings tell you when stock is too high or too low for expected demand.",
+    translationKey: "landing.featureDemand",
   },
   {
     icon: BarChart3,
-    title: "Make production decisions using data",
-    text: "Your sales history, inventory, capacity and weather all in one simple screen.",
+    translationKey: "landing.featureInventory",
   },
 ];
 
 function Landing() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-background">
       <header className="hero-gradient px-4 pt-6 pb-16 text-sidebar-foreground sm:px-8">
@@ -58,24 +57,23 @@ function Landing() {
           </div>
           <Link to="/auth">
             <Button variant="secondary" size="sm">
-              Login
+              {t("auth.login")}
             </Button>
           </Link>
         </div>
 
         <div className="mx-auto mt-14 max-w-3xl text-center">
-          <h1 className="font-display text-4xl font-semibold sm:text-5xl">RuralPlan</h1>
+          <h1 className="font-display text-4xl font-semibold sm:text-5xl">{t("landing.title")}</h1>
           <p className="mt-3 text-lg font-medium text-sidebar-primary sm:text-xl">
-            Smart Production Planning for Rural Entrepreneurs
+            {t("landing.subtitle")}
           </p>
           <p className="mx-auto mt-5 max-w-2xl text-base opacity-90">
-            RuralPlan helps rural entrepreneurs plan production using sales history, expected
-            demand, inventory, raw materials, production capacity, and weather information.
+            {t("dashboard.description")}
           </p>
           <div className="mt-8 flex justify-center">
             <Link to="/auth">
               <Button size="lg" className="h-14 px-10 text-base">
-                Get Started
+                {t("landing.getStarted")}
               </Button>
             </Link>
           </div>
@@ -83,7 +81,11 @@ function Landing() {
       </header>
 
       <section className="mx-auto -mt-10 grid max-w-5xl gap-4 px-4 sm:grid-cols-3 sm:px-8">
-        {BENEFITS.map(({ icon: Icon, title, text }) => (
+        {[
+          { icon: Scale, title: "Smart Production Planning", text: "Get a clear recommended production quantity for every product you make." },
+          { icon: CheckCircle2, title: "Demand Forecasting", text: "Simple warnings tell you when stock is too high or too low for expected demand." },
+          { icon: BarChart3, title: "Inventory Management", text: "Your sales history, inventory, capacity and weather all in one simple screen." },
+        ].map(({ icon: Icon, title, text }) => (
           <article key={title} className="surface-card p-5">
             <span className="flex size-11 items-center justify-center rounded-xl bg-secondary text-primary">
               <Icon className="size-5" />

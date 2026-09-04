@@ -77,7 +77,29 @@ export function RuralPlanProvider({ children }: { children: ReactNode }) {
 
     setData({
       profile: profileRow ? { name: profileRow.name, email: profileRow.email, village: profileRow.location, district: profileRow.district, state: profileRow.state } : null,
-      products: (productsResult.data ?? []).map((p) => ({ id: p.id, name: p.product_name, rawMaterial: p.raw_material_name, unit: p.unit, capacityPerDay: p.production_capacity, minStock: p.minimum_stock, currentStock: p.current_stock, productionCost: p.production_cost, shelfLifeDays: p.shelf_life, workers: p.workers, rawPerUnit: p.raw_per_unit, rawUnit: p.raw_unit })),
+      products: (productsResult.data ?? []).map((p) => ({ 
+        id: p.id, 
+        name: p.product_name, 
+        rawMaterial: p.raw_material_name, 
+        unit: p.unit, 
+        capacityPerDay: p.production_capacity, 
+        minStock: p.minimum_stock, 
+        currentStock: p.current_stock, 
+        productionCost: p.production_cost, 
+        shelfLifeDays: p.shelf_life, 
+        workers: p.workers, 
+        rawPerUnit: p.raw_per_unit, 
+        rawUnit: p.raw_unit,
+        // Cold Start fields
+        demandMode: p.demand_mode,
+        potentialCustomers: p.potential_customers,
+        conversionRate: p.conversion_rate,
+        purchaseFrequency: p.purchase_frequency,
+        avgPurchaseQuantity: p.avg_purchase_quantity,
+        isSeasonal: p.is_seasonal,
+        seasonStartMonth: p.season_start_month,
+        seasonEndMonth: p.season_end_month,
+      })),
       sales: (salesResult.data ?? []).map((s) => ({ id: s.id, date: s.date, productId: s.product_id, location: s.location, quantity: s.quantity_sold })),
       materials: (inventoryResult.data ?? []).map((m) => ({ id: m.id, name: m.material_name, unit: m.unit, currentQty: m.current_quantity, requiredQty: m.required_quantity, minLevel: m.minimum_quantity })),
       production: (productionResult.data ?? []).map((r) => ({ id: r.id, date: r.date, productId: r.product_id, planned: r.planned_quantity, actual: r.actual_quantity, sold: r.quantity_sold, remainingStock: r.remaining_stock })),
@@ -113,16 +135,96 @@ export function RuralPlanProvider({ children }: { children: ReactNode }) {
   }, [userId]);
 
   const register = useCallback(async (profile: Profile, password: string) => {
-    const { data: result, error } = await supabase.auth.signUp({ email: profile.email, password, options: { data: profile } });
-    if (error) throw error;
-    if (!result.user) throw new Error("Account could not be created.");
-    if (result.session) {
-      setUserId(result.user.id);
-      const profileResult = await supabase.from("profiles").upsert({ id: result.user.id, name: profile.name, email: profile.email, location: profile.village, district: profile.district, state: profile.state });
-      if (profileResult.error) throw profileResult.error;
-      await loadData(result.user.id, result.user);
+    // Sign up the user
+    const { data: signUpResult, error: signUpError } = await supabase.auth.signUp({ 
+      email: profile.email, 
+      password, 
+      options: { data: profile } 
+    });
+    
+    if (signUpError) {
+      // Handle specific Supabase error messages
+      if (signUpError.message.includes("already registered")) {
+        throw new Error("This email is already registered. Please log in instead.");
+      }
+      if (signUpError.message.includes("invalid email")) {
+        throw new Error("Please enter a valid email address.");
+      }
+      if (signUpError.message.includes("password")) {
+        throw new Error("Password must be at least 6 characters.");
+      }
+      throw signUpError;
     }
-    return Boolean(result.session);
+    
+    if (!signUpResult.user) {
+      throw new Error("Account could not be created.");
+    }
+    
+    // If session was immediately available, use it directly
+    if (signUpResult.session) {
+      setUserId(signUpResult.user.id);
+      const profileResult = await supabase.from("profiles").upsert({ 
+        id: signUpResult.user.id, 
+        name: profile.name, 
+        email: profile.email, 
+        location: profile.village, 
+        district: profile.district, 
+        state: profile.state 
+      });
+      if (profileResult.error) throw profileResult.error;
+      await loadData(signUpResult.user.id, signUpResult.user);
+      return true;
+    }
+    
+    // If no session from signUp(), the account was created but email confirmation
+    // is required (or not yet processed). Create the profile first, then attempt
+    // to sign in with credentials. Use retry logic for the sign-in as there can
+    // be a brief delay before credentials are fully available.
+    const profileResult = await supabase.from("profiles").upsert({ 
+      id: signUpResult.user.id, 
+      name: profile.name, 
+      email: profile.email, 
+      location: profile.village, 
+      district: profile.district, 
+      state: profile.state 
+    });
+    if (profileResult.error) throw profileResult.error;
+    
+    // Attempt to sign in with a retry mechanism (max 3 attempts with 500ms delay)
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      // Wait before attempting (except on first attempt)
+      if (attempt > 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      const { data: signInResult, error: signInError } = await supabase.auth.signInWithPassword({
+        email: profile.email,
+        password,
+      });
+      
+      if (signInError) {
+        lastError = signInError;
+        continue; // Try again
+      }
+      
+      if (!signInResult.user || !signInResult.session) {
+        lastError = new Error("Could not establish session after signing in.");
+        continue; // Try again
+      }
+      
+      // Success! Set up the session and load user data
+      setUserId(signInResult.user.id);
+      await loadData(signInResult.user.id, signInResult.user);
+      return true;
+    }
+    
+    // All retry attempts failed
+    throw new Error(
+      lastError && lastError.message.includes("Invalid login credentials") 
+        ? "Credentials do not match. Please try again."
+        : "Account created but could not establish session. Please log in manually."
+    );
   }, [loadData]);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -162,7 +264,28 @@ export function RuralPlanProvider({ children }: { children: ReactNode }) {
     },
     updateProduct: async (id, p) => {
       requireUser();
-      const next = { ...(p.name === undefined ? {} : { product_name: p.name }), ...(p.rawMaterial === undefined ? {} : { raw_material_name: p.rawMaterial }), ...(p.unit === undefined ? {} : { unit: p.unit }), ...(p.capacityPerDay === undefined ? {} : { production_capacity: p.capacityPerDay }), ...(p.currentStock === undefined ? {} : { current_stock: p.currentStock }), ...(p.minStock === undefined ? {} : { minimum_stock: p.minStock }), ...(p.shelfLifeDays === undefined ? {} : { shelf_life: p.shelfLifeDays }), ...(p.productionCost === undefined ? {} : { production_cost: p.productionCost }), ...(p.workers === undefined ? {} : { workers: p.workers }), ...(p.rawPerUnit === undefined ? {} : { raw_per_unit: p.rawPerUnit }), ...(p.rawUnit === undefined ? {} : { raw_unit: p.rawUnit }) };
+      const next = { 
+        ...(p.name === undefined ? {} : { product_name: p.name }), 
+        ...(p.rawMaterial === undefined ? {} : { raw_material_name: p.rawMaterial }), 
+        ...(p.unit === undefined ? {} : { unit: p.unit }), 
+        ...(p.capacityPerDay === undefined ? {} : { production_capacity: p.capacityPerDay }), 
+        ...(p.currentStock === undefined ? {} : { current_stock: p.currentStock }), 
+        ...(p.minStock === undefined ? {} : { minimum_stock: p.minStock }), 
+        ...(p.shelfLifeDays === undefined ? {} : { shelf_life: p.shelfLifeDays }), 
+        ...(p.productionCost === undefined ? {} : { production_cost: p.productionCost }), 
+        ...(p.workers === undefined ? {} : { workers: p.workers }), 
+        ...(p.rawPerUnit === undefined ? {} : { raw_per_unit: p.rawPerUnit }), 
+        ...(p.rawUnit === undefined ? {} : { raw_unit: p.rawUnit }),
+        // Cold Start fields
+        ...(p.demandMode === undefined ? {} : { demand_mode: p.demandMode }),
+        ...(p.potentialCustomers === undefined ? {} : { potential_customers: p.potentialCustomers }),
+        ...(p.conversionRate === undefined ? {} : { conversion_rate: p.conversionRate }),
+        ...(p.purchaseFrequency === undefined ? {} : { purchase_frequency: p.purchaseFrequency }),
+        ...(p.avgPurchaseQuantity === undefined ? {} : { avg_purchase_quantity: p.avgPurchaseQuantity }),
+        ...(p.isSeasonal === undefined ? {} : { is_seasonal: p.isSeasonal }),
+        ...(p.seasonStartMonth === undefined ? {} : { season_start_month: p.seasonStartMonth }),
+        ...(p.seasonEndMonth === undefined ? {} : { season_end_month: p.seasonEndMonth }),
+      };
       const { error } = await supabase.from("products").update(next).eq("id", id);
       if (error) throw error;
       patch((d) => ({ ...d, products: d.products.map((x) => (x.id === id ? { ...x, ...p } : x)) }));
