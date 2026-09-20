@@ -1,29 +1,72 @@
-# Welcome to your Lovable project
+# RuralPlan AI
 
-This project was built with [Lovable](https://lovable.dev).
+## Smart Production Planning for Rural Entrepreneurs
 
-## Build with Lovable
+RuralPlan AI is a web-based production planning application designed to help rural entrepreneurs make better production decisions using inventory, sales history, demand, raw-material availability, production history, and weather information.
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+---
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+## Problem Statement
 
-## Development
+> There is no real-time data-driven support system to help rural entrepreneurs in Maharashtra make informed decisions on production, pricing, and distribution.
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+### Our Focus
 
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
+This project focuses specifically on **production planning**.
 
-## Built with
+Rural entrepreneurs often lack timely information about demand, inventory, raw materials, production capacity, and weather conditions. This can lead to overproduction, shortages, and inefficient use of resources.
 
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+RuralPlan AI provides a centralized system to support better production planning decisions.
+
+---
+
+## Key Features
+
+- Production planning dashboard
+- Recipe-based raw-material calculation
+- Raw-material inventory management
+- Sales and demand tracking
+- Production completion and stock updates
+- Production history
+- Weather information
+- Production alerts
+- Production recommendations
+- Supabase authentication
+- User-specific business data
+- Persistent database storage
+- Responsive interface
+
+---
+
+## Supported Products
+
+The current MVP focuses on five pickle products:
+
+1. Mango Pickle
+2. Lemon Pickle
+3. Amla Pickle
+4. Mixed Pickle
+5. Chilli Pickle
+
+---
+
+## How It Works
+
+```text
+Sales Data
+    ↓
+Expected Demand
+    ↓
+Current Finished Stock
+    ↓
+Production Planner
+    ↓
+Raw-Material Availability
+    ↓
+Production Decision
+    ↓
+Produce Product
+    ↓
+Finished Stock Updated
+    ↓
+Production History
