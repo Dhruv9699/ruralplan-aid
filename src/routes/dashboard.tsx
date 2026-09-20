@@ -17,8 +17,12 @@ import { useStore } from "@/lib/ruralplan/store";
 import { computePlan, estimateDemand, materialFor, materialStatus } from "@/lib/ruralplan/engine";
 import { buildAlerts } from "@/lib/ruralplan/alerts";
 import { getWeather, weatherFactor } from "@/lib/ruralplan/weather";
+import { requireAuth } from "@/lib/auth-utils";
 
 export const Route = createFileRoute("/dashboard")({
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   head: () => ({
     meta: [
       { title: "Dashboard — RuralPlan" },

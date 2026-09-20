@@ -11,8 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useStore } from "@/lib/ruralplan/store";
 import { materialStatus } from "@/lib/ruralplan/engine";
+import { requireAuth } from "@/lib/auth-utils";
 
 export const Route = createFileRoute("/inventory")({
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   head: () => ({
     meta: [
       { title: "Raw Materials & Inventory — RuralPlan" },

@@ -23,8 +23,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useStore } from "@/lib/ruralplan/store";
 import { productionChartData } from "@/lib/ruralplan/engine";
+import { requireAuth } from "@/lib/auth-utils";
 
 export const Route = createFileRoute("/production-history")({
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   head: () => ({
     meta: [
       { title: "Production History — RuralPlan" },

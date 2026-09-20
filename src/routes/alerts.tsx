@@ -4,8 +4,12 @@ import { AppShell, PageHeader } from "@/components/app-shell";
 import { StatusPill } from "@/components/stat-card";
 import { useStore } from "@/lib/ruralplan/store";
 import { buildAlerts } from "@/lib/ruralplan/alerts";
+import { requireAuth } from "@/lib/auth-utils";
 
 export const Route = createFileRoute("/alerts")({
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   head: () => ({
     meta: [
       { title: "Production Alerts — RuralPlan" },

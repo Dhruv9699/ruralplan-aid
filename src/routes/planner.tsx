@@ -11,8 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useStore } from "@/lib/ruralplan/store";
 import { computePlan, estimateDemand, materialFor } from "@/lib/ruralplan/engine";
 import { getWeather, weatherFactor } from "@/lib/ruralplan/weather";
+import { requireAuth } from "@/lib/auth-utils";
 
 export const Route = createFileRoute("/planner")({
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   head: () => ({
     meta: [
       { title: "Production Planner — RuralPlan" },

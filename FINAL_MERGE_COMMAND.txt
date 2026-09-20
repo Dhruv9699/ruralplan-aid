@@ -1,0 +1,63 @@
+RURALPLAN AI - OLD VERSION RESTORATION
+FINAL MERGE COMMAND
+=====================================================
+
+CURRENT STATUS:
+✅ Old version verified and ready
+✅ All tests passed
+✅ Backup branch created
+✅ Build successful (0 errors)
+
+BRANCHES:
+- restore/old-ruralplan (a2d097d) - READY TO MERGE
+- backup/before-old-version-restore (3de7ca1) - BACKUP
+- main (3de7ca1) - CURRENT
+
+=====================================================
+
+TO MERGE OLD VERSION TO MAIN:
+
+Step 1: Checkout main branch
+    git checkout main
+
+Step 2: Merge the old version
+    git merge restore/old-ruralplan
+
+Step 3 (OPTIONAL - only if deploying): Push to GitHub
+    git push origin main
+
+=====================================================
+
+AFTER MERGE:
+
+Verify restoration:
+    git branch -v
+    git log --oneline -5
+
+Start development server:
+    npm run dev
+
+Visit: http://localhost:5173
+
+=====================================================
+
+TO ROLLBACK (if needed):
+
+Return to current version:
+    git checkout backup/before-old-version-restore
+
+Or reset main:
+    git checkout main
+    git reset --hard 3de7ca1
+
+=====================================================
+
+DOCUMENTATION:
+- RESTORED_OLD_VERSION_TEST_REPORT.md (Full test results)
+- MERGE_INSTRUCTIONS.md (Detailed procedures)
+- RESTORATION_STATUS.md (Summary)
+
+=====================================================
+
+USER APPROVAL REQUIRED BEFORE EXECUTING THESE COMMANDS
+

@@ -8,8 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore } from "@/lib/ruralplan/store";
 import { MAHARASHTRA_DISTRICTS, getWeather } from "@/lib/ruralplan/weather";
+import { requireAuth } from "@/lib/auth-utils";
 
 export const Route = createFileRoute("/weather")({
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   head: () => ({
     meta: [
       { title: "Weather — RuralPlan" },

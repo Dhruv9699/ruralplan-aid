@@ -6,8 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useStore } from "@/lib/ruralplan/store";
 import { SUGGESTED_QUESTIONS, assistantReply } from "@/lib/ruralplan/assistant";
+import { requireAuth } from "@/lib/auth-utils";
 
 export const Route = createFileRoute("/assistant")({
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   head: () => ({
     meta: [
       { title: "RuralPlan Assistant — Production Help" },

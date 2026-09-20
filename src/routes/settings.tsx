@@ -8,8 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore } from "@/lib/ruralplan/store";
 import { MAHARASHTRA_DISTRICTS } from "@/lib/ruralplan/weather";
+import { requireAuth } from "@/lib/auth-utils";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/settings")({
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   head: () => ({
     meta: [
       { title: "Settings — RuralPlan" },
@@ -129,9 +134,10 @@ function SettingsPage() {
             <Button
               variant="ghost"
               className="h-12"
-              onClick={() => {
-                signOut();
-                navigate({ to: "/" });
+              onClick={async () => {
+                await supabase.auth.signOut();
+                toast.success("Logged out");
+                navigate({ to: "/auth" });
               }}
             >
               Log out

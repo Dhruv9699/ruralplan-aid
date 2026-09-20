@@ -31,8 +31,12 @@ import {
 } from "@/components/ui/table";
 import { useStore } from "@/lib/ruralplan/store";
 import { dailySales, estimateDemand, monthlySales, weeklySales } from "@/lib/ruralplan/engine";
+import { requireAuth } from "@/lib/auth-utils";
 
 export const Route = createFileRoute("/sales")({
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   head: () => ({
     meta: [
       { title: "Demand & Sales History — RuralPlan" },

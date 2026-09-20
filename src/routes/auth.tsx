@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Field } from "@/components/field";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useStore } from "@/lib/ruralplan/store";
 import { MAHARASHTRA_DISTRICTS } from "@/lib/ruralplan/weather";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -40,9 +40,9 @@ const schema = z.object({
 });
 
 function AuthPage() {
-  const { signIn, updateSettings } = useStore();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signup" | "login">("signup");
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -55,35 +55,89 @@ function AuthPage() {
 
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const payload = mode === "login" ? { ...form, name: form.name || "RuralPlan User" } : form;
-    const parsed = schema.safeParse(payload);
-    if (!parsed.success) {
-      const map: Record<string, string> = {};
-      for (const issue of parsed.error.issues) map[String(issue.path[0])] = issue.message;
-      setErrors(map);
-      return;
-    }
+    setLoading(true);
     setErrors({});
-    const { name, email, village, district, state } = parsed.data;
-    signIn({ name, email, village, district, state });
-    updateSettings({ district, village });
-    toast.success(mode === "signup" ? "Account created" : "Welcome back");
-    navigate({ to: "/dashboard" });
-  }
 
-  function demoLogin() {
-    signIn({
-      name: "Demo Entrepreneur",
-      email: "demo@ruralplan.in",
-      village: "Ozar",
-      district: "Nashik",
-      state: "Maharashtra",
-    });
-    updateSettings({ district: "Nashik", village: "Ozar" });
-    toast.success("Signed in with demo data");
-    navigate({ to: "/dashboard" });
+    try {
+      const payload = mode === "login" ? { ...form, name: form.name || "RuralPlan User" } : form;
+      const parsed = schema.safeParse(payload);
+      
+      if (!parsed.success) {
+        const map: Record<string, string> = {};
+        for (const issue of parsed.error.issues) map[String(issue.path[0])] = issue.message;
+        setErrors(map);
+        setLoading(false);
+        return;
+      }
+
+      const { name, email, password, village, district, state } = parsed.data;
+
+      if (mode === "signup") {
+        // Signup flow
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        if (authError) {
+          toast.error(authError.message);
+          setLoading(false);
+          return;
+        }
+
+        if (!authData.user) {
+          toast.error("Signup failed");
+          setLoading(false);
+          return;
+        }
+
+        // Create profile
+        const { error: profileError } = await supabase.from("profiles").insert({
+          id: authData.user.id,
+          name,
+          email,
+          location: village,
+          district,
+          state,
+        });
+
+        if (profileError) {
+          toast.error("Profile creation failed: " + profileError.message);
+          setLoading(false);
+          return;
+        }
+
+        toast.success("Account created successfully");
+        navigate({ to: "/dashboard" });
+      } else {
+        // Login flow
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          toast.error("Invalid email or password");
+          setLoading(false);
+          return;
+        }
+
+        if (!data.session) {
+          toast.error("Login failed");
+          setLoading(false);
+          return;
+        }
+
+        toast.success("Welcome back");
+        navigate({ to: "/dashboard" });
+      }
+    } catch (error) {
+      console.error("Auth error:", error);
+      toast.error("An error occurred");
+      setLoading(false);
+    }
   }
 
   return (
@@ -111,6 +165,7 @@ function AuthPage() {
                   value={form.name}
                   onChange={(e) => set("name", e.target.value)}
                   placeholder="Your full name"
+                  disabled={loading}
                 />
               </Field>
             )}
@@ -120,6 +175,7 @@ function AuthPage() {
                 value={form.email}
                 onChange={(e) => set("email", e.target.value)}
                 placeholder="you@example.com"
+                disabled={loading}
               />
             </Field>
             <Field label="Password" error={errors["password"]}>
@@ -128,6 +184,7 @@ function AuthPage() {
                 value={form.password}
                 onChange={(e) => set("password", e.target.value)}
                 placeholder="At least 6 characters"
+                disabled={loading}
               />
             </Field>
             {mode === "signup" && (
@@ -137,10 +194,11 @@ function AuthPage() {
                     value={form.village}
                     onChange={(e) => set("village", e.target.value)}
                     placeholder="Village or town"
+                    disabled={loading}
                   />
                 </Field>
                 <Field label="District" error={errors["district"]}>
-                  <Select value={form.district} onValueChange={(v) => set("district", v)}>
+                  <Select value={form.district} onValueChange={(v) => set("district", v)} disabled={loading}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select district" />
                     </SelectTrigger>
@@ -154,21 +212,18 @@ function AuthPage() {
                   </Select>
                 </Field>
                 <Field label="State" error={errors["state"]}>
-                  <Input value={form.state} onChange={(e) => set("state", e.target.value)} />
+                  <Input value={form.state} onChange={(e) => set("state", e.target.value)} disabled={loading} />
                 </Field>
               </>
             )}
 
-            <Button type="submit" size="lg" className="h-12 w-full">
-              {mode === "signup" ? "Create account" : "Login"}
-            </Button>
-            <Button type="button" variant="outline" className="h-12 w-full" onClick={demoLogin}>
-              Continue with demo data
+            <Button type="submit" size="lg" className="h-12 w-full" disabled={loading}>
+              {loading ? "Please wait..." : mode === "signup" ? "Create account" : "Login"}
             </Button>
           </form>
         </div>
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          This prototype stores your data safely on this device only.
+          Your data is securely stored and protected with row-level security.
         </p>
       </div>
     </div>

@@ -18,8 +18,12 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore } from "@/lib/ruralplan/store";
 import type { Product } from "@/lib/ruralplan/types";
+import { requireAuth } from "@/lib/auth-utils";
 
 export const Route = createFileRoute("/products")({
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   head: () => ({
     meta: [
       { title: "Products — RuralPlan" },
