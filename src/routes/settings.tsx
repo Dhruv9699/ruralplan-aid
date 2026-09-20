@@ -34,7 +34,7 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
-  const { profile, settings, signIn, signOut, updateSettings, loadDemoData, clearAllData } = useStore();
+  const { profile, settings, signIn, signOut, updateSettings, clearAllData } = useStore();
   const navigate = useNavigate();
   const [name, setName] = useState(profile?.name ?? "");
   const [village, setVillage] = useState(profile?.village ?? settings.village);
@@ -107,26 +107,22 @@ function SettingsPage() {
         <section className="surface-card p-5">
           <h2 className="font-display text-lg font-semibold">Data</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            RuralPlan stores your products, sales, raw materials and production records on this
-            device. You can reload the sample data or start with a clean account.
+            Your products, sales, raw materials and production records are securely stored in the database.
+            You can delete all data and start fresh if needed.
           </p>
           <div className="mt-4 grid gap-3">
             <Button
               variant="outline"
               className="h-12"
-              onClick={() => {
-                loadDemoData();
-                toast.success("Demo data reloaded");
-              }}
-            >
-              Reload demo data
-            </Button>
-            <Button
-              variant="outline"
-              className="h-12"
-              onClick={() => {
-                clearAllData();
-                toast.success("All data cleared");
+              onClick={async () => {
+                if (confirm("This will delete ALL your data. Are you sure?")) {
+                  try {
+                    await clearAllData();
+                    toast.success("All data cleared");
+                  } catch (error) {
+                    toast.error("Failed to clear data");
+                  }
+                }
               }}
             >
               Delete all data and start fresh
@@ -136,6 +132,7 @@ function SettingsPage() {
               className="h-12"
               onClick={async () => {
                 await supabase.auth.signOut();
+                signOut();
                 toast.success("Logged out");
                 navigate({ to: "/auth" });
               }}

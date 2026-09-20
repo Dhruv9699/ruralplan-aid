@@ -86,9 +86,18 @@ function HistoryPage() {
       return;
     }
     setErrors({});
-    addProduction(parsed.data);
-    setForm((f) => ({ ...f, planned: "", actual: "", sold: "" }));
-    toast.success("Production record added");
+    
+    // Handle async operation
+    (async () => {
+      try {
+        await addProduction(parsed.data);
+        setForm((f) => ({ ...f, planned: "", actual: "", sold: "" }));
+        toast.success("Production record added");
+      } catch (error) {
+        console.error("Failed to add production record:", error);
+        toast.error(error instanceof Error ? error.message : "Failed to add record");
+      }
+    })();
   };
 
   return (
@@ -211,7 +220,13 @@ function HistoryPage() {
                         variant="ghost"
                         size="icon"
                         aria-label="Delete record"
-                        onClick={() => removeProduction(r.id)}
+                        onClick={async () => {
+                          try {
+                            await removeProduction(r.id);
+                          } catch (error) {
+                            toast.error("Failed to delete record");
+                          }
+                        }}
                       >
                         <Trash2 className="size-4 text-destructive" />
                       </Button>

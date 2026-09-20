@@ -5,6 +5,7 @@ const id = (p: string, n: number) => `${p}-${n}`;
 export const demoProducts: Product[] = [
   {
     id: id("prod", 1),
+    userId: "demo-user",
     name: "Mango Pickle",
     rawMaterial: "Mango",
     unit: "jar",
@@ -19,6 +20,7 @@ export const demoProducts: Product[] = [
   },
   {
     id: id("prod", 2),
+    userId: "demo-user",
     name: "Lemon Pickle",
     rawMaterial: "Lemon",
     unit: "jar",
@@ -33,6 +35,7 @@ export const demoProducts: Product[] = [
   },
   {
     id: id("prod", 3),
+    userId: "demo-user",
     name: "Amla Pickle",
     rawMaterial: "Amla",
     unit: "jar",
@@ -67,6 +70,7 @@ function buildSales(): Sale[] {
         const d = new Date(today.getFullYear(), today.getMonth() - m, 3 + w * 7);
         out.push({
           id: id("sale", ++n),
+          userId: "demo-user",
           date: d.toISOString().slice(0, 10),
           productId: product.id,
           location: locations[(n + w) % locations.length]!,
@@ -79,15 +83,16 @@ function buildSales(): Sale[] {
 }
 
 export const demoMaterials: Material[] = [
-  { id: id("mat", 1), name: "Mango", unit: "kg", currentQty: 120, requiredQty: 90, minLevel: 40 },
-  { id: id("mat", 2), name: "Lemon", unit: "kg", currentQty: 35, requiredQty: 30, minLevel: 20 },
-  { id: id("mat", 3), name: "Amla", unit: "kg", currentQty: 12, requiredQty: 28, minLevel: 15 },
-  { id: id("mat", 4), name: "Oil", unit: "litre", currentQty: 20, requiredQty: 15, minLevel: 10 },
-  { id: id("mat", 5), name: "Salt", unit: "kg", currentQty: 25, requiredQty: 12, minLevel: 8 },
-  { id: id("mat", 6), name: "Spices", unit: "kg", currentQty: 3, requiredQty: 5, minLevel: 4 },
-  { id: id("mat", 7), name: "Jars", unit: "packet", currentQty: 180, requiredQty: 150, minLevel: 60 },
+  { id: id("mat", 1), userId: "demo-user", name: "Mango", unit: "kg", currentQty: 120, requiredQty: 90, minLevel: 40 },
+  { id: id("mat", 2), userId: "demo-user", name: "Lemon", unit: "kg", currentQty: 35, requiredQty: 30, minLevel: 20 },
+  { id: id("mat", 3), userId: "demo-user", name: "Amla", unit: "kg", currentQty: 12, requiredQty: 28, minLevel: 15 },
+  { id: id("mat", 4), userId: "demo-user", name: "Oil", unit: "litre", currentQty: 20, requiredQty: 15, minLevel: 10 },
+  { id: id("mat", 5), userId: "demo-user", name: "Salt", unit: "kg", currentQty: 25, requiredQty: 12, minLevel: 8 },
+  { id: id("mat", 6), userId: "demo-user", name: "Spices", unit: "kg", currentQty: 3, requiredQty: 5, minLevel: 4 },
+  { id: id("mat", 7), userId: "demo-user", name: "Jars", unit: "packet", currentQty: 180, requiredQty: 150, minLevel: 60 },
   {
     id: id("mat", 8),
+    userId: "demo-user",
     name: "Packaging material",
     unit: "packet",
     currentQty: 90,
@@ -108,6 +113,7 @@ function buildProduction(): ProductionRecord[] {
       const sold = Math.round(actual * (0.8 + ((n % 4) * 0.04)));
       out.push({
         id: id("run", ++n),
+        userId: "demo-user",
         date: d.toISOString().slice(0, 10),
         productId: p.id,
         planned,

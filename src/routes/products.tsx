@@ -134,14 +134,23 @@ function ProductsPage() {
       toast.error("Please correct the highlighted fields");
       return;
     }
-    if (editId) {
-      updateProduct(editId, parsed.data);
-      toast.success("Product updated");
-    } else {
-      addProduct(parsed.data);
-      toast.success("Product added");
-    }
-    setOpen(false);
+    
+    // Handle async operations
+    (async () => {
+      try {
+        if (editId) {
+          await updateProduct(editId, parsed.data);
+          toast.success("Product updated");
+        } else {
+          await addProduct(parsed.data);
+          toast.success("Product added");
+        }
+        setOpen(false);
+      } catch (error) {
+        console.error("Failed to save product:", error);
+        toast.error(error instanceof Error ? error.message : "Failed to save product");
+      }
+    })();
   }
 
   return (
@@ -179,9 +188,13 @@ function ProductsPage() {
                     variant="outline"
                     size="icon"
                     aria-label="Delete"
-                    onClick={() => {
-                      removeProduct(p.id);
-                      toast.success(`${p.name} deleted`);
+                    onClick={async () => {
+                      try {
+                        await removeProduct(p.id);
+                        toast.success(`${p.name} deleted`);
+                      } catch (error) {
+                        toast.error("Failed to delete product");
+                      }
                     }}
                   >
                     <Trash2 className="size-4 text-destructive" />

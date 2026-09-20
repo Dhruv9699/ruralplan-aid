@@ -111,9 +111,18 @@ function SalesPage() {
       return;
     }
     setErrors({});
-    addSale(parsed.data);
-    setForm((f) => ({ ...f, quantity: "" }));
-    toast.success("Sales record added");
+    
+    // Handle async operation
+    (async () => {
+      try {
+        await addSale(parsed.data);
+        setForm((f) => ({ ...f, quantity: "" }));
+        toast.success("Sales record added");
+      } catch (error) {
+        console.error("Failed to add sale:", error);
+        toast.error(error instanceof Error ? error.message : "Failed to add sale");
+      }
+    })();
   };
 
   return (
@@ -309,7 +318,13 @@ function SalesPage() {
                         variant="ghost"
                         size="icon"
                         aria-label="Delete record"
-                        onClick={() => removeSale(s.id)}
+                        onClick={async () => {
+                          try {
+                            await removeSale(s.id);
+                          } catch (error) {
+                            toast.error("Failed to delete sale");
+                          }
+                        }}
                       >
                         <Trash2 className="size-4 text-destructive" />
                       </Button>

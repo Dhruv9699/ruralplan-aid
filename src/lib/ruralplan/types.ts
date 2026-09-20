@@ -2,6 +2,7 @@ export type Unit = "jar" | "kg" | "litre" | "packet" | "box" | "bottle";
 
 export interface Product {
   id: string;
+  userId: string; // Supabase user_id
   name: string;
   rawMaterial: string;
   unit: string;
@@ -17,6 +18,7 @@ export interface Product {
 
 export interface Sale {
   id: string;
+  userId: string; // Supabase user_id
   date: string; // yyyy-mm-dd
   productId: string;
   location: string;
@@ -25,6 +27,7 @@ export interface Sale {
 
 export interface Material {
   id: string;
+  userId: string; // Supabase user_id
   name: string;
   unit: string;
   currentQty: number;
@@ -34,6 +37,7 @@ export interface Material {
 
 export interface ProductionRecord {
   id: string;
+  userId: string; // Supabase user_id
   date: string;
   productId: string;
   planned: number;

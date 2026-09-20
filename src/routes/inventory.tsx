@@ -72,9 +72,18 @@ function InventoryPage() {
       return;
     }
     setErrors({});
-    addMaterial(parsed.data);
-    setForm({ name: "", unit: "kg", currentQty: "", requiredQty: "", minLevel: "" });
-    toast.success("Raw material added");
+    
+    // Handle async operation
+    (async () => {
+      try {
+        await addMaterial(parsed.data);
+        setForm({ name: "", unit: "kg", currentQty: "", requiredQty: "", minLevel: "" });
+        toast.success("Raw material added");
+      } catch (error) {
+        console.error("Failed to add material:", error);
+        toast.error(error instanceof Error ? error.message : "Failed to add material");
+      }
+    })();
   };
 
   return (
@@ -122,9 +131,13 @@ function InventoryPage() {
                     type="number"
                     min={0}
                     value={m.currentQty}
-                    onChange={(e) =>
-                      updateMaterial(m.id, { currentQty: Math.max(0, Number(e.target.value) || 0) })
-                    }
+                    onChange={async (e) => {
+                      try {
+                        await updateMaterial(m.id, { currentQty: Math.max(0, Number(e.target.value) || 0) });
+                      } catch (error) {
+                        toast.error("Failed to update quantity");
+                      }
+                    }}
                   />
                 </Field>
                 <Field label={`Required (${m.unit})`}>
@@ -132,18 +145,26 @@ function InventoryPage() {
                     type="number"
                     min={0}
                     value={m.requiredQty}
-                    onChange={(e) =>
-                      updateMaterial(m.id, { requiredQty: Math.max(0, Number(e.target.value) || 0) })
-                    }
+                    onChange={async (e) => {
+                      try {
+                        await updateMaterial(m.id, { requiredQty: Math.max(0, Number(e.target.value) || 0) });
+                      } catch (error) {
+                        toast.error("Failed to update quantity");
+                      }
+                    }}
                   />
                 </Field>
               </div>
               <Button
                 variant="outline"
                 className="mt-3 w-full"
-                onClick={() => {
-                  removeMaterial(m.id);
-                  toast.success(`${m.name} removed`);
+                onClick={async () => {
+                  try {
+                    await removeMaterial(m.id);
+                    toast.success(`${m.name} removed`);
+                  } catch (error) {
+                    toast.error("Failed to remove material");
+                  }
                 }}
               >
                 <Trash2 className="size-4 text-destructive" /> Remove
