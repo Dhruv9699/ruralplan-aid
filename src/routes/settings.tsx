@@ -34,7 +34,7 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
-  const { profile, settings, signIn, signOut, updateSettings, clearAllData } = useStore();
+  const { profile, settings, signIn, signOut, updateSettings, clearAllData, loadDemoData } = useStore();
   const navigate = useNavigate();
   const [name, setName] = useState(profile?.name ?? "");
   const [village, setVillage] = useState(profile?.village ?? settings.village);
@@ -111,6 +111,24 @@ function SettingsPage() {
             You can delete all data and start fresh if needed.
           </p>
           <div className="mt-4 grid gap-3">
+            <Button
+              variant="default"
+              className="h-12"
+              onClick={async () => {
+                if (confirm("This will replace all your current data with demo data. Continue?")) {
+                  try {
+                    await loadDemoData();
+                    toast.success("Demo data loaded successfully");
+                  } catch (error) {
+                    console.error("Failed to load demo data:", error);
+                    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+                    toast.error(`Failed to load demo data: ${errorMessage}`);
+                  }
+                }
+              }}
+            >
+              Load Demo Data
+            </Button>
             <Button
               variant="outline"
               className="h-12"

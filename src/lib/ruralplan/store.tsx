@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { supabase } from "../supabase";
-import { createEmptyData } from "./demo";
+import { createDemoData, createEmptyData } from "./demo";
 import type {
   AppSettings,
   Material,
@@ -38,6 +38,7 @@ interface StoreValue extends RuralPlanData {
   removeProduction: (id: string) => Promise<void>;
   updateSettings: (s: Partial<AppSettings>) => void;
   clearAllData: () => Promise<void>;
+  loadDemoData: () => Promise<void>;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -120,32 +121,45 @@ export function RuralPlanProvider({ children }: { children: ReactNode }) {
         sold: r.quantity_sold,
       }));
 
-      setData({
-        ...data,
+      // FIX: Use functional update to preserve existing state
+      setData((prevData) => ({
+        ...prevData,
         products,
         sales,
         materials,
         production,
-      });
+      }));
 
       setReady(true);
     } catch (err) {
       console.error("Failed to load user data:", err);
       setError(err instanceof Error ? err.message : "Failed to load data");
+      // Still set ready to true so the app doesn't hang
+      setReady(true);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []); // Keep empty deps - function is stable
 
   // Load data on mount and when auth state changes
   useEffect(() => {
-    loadUserData();
+    let cancelled = false;
+
+    const init = async () => {
+      if (!cancelled) {
+        await loadUserData();
+      }
+    };
+
+    init();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
+    } = supabase.auth.onAuthStateChange(async (event) => {
+      if (cancelled) return;
+      
       if (event === "SIGNED_IN") {
-        loadUserData();
+        await loadUserData();
       } else if (event === "SIGNED_OUT") {
         setData(createEmptyData());
         setReady(true);
@@ -153,6 +167,7 @@ export function RuralPlanProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
+      cancelled = true;
       subscription.unsubscribe();
     };
   }, [loadUserData]);
@@ -450,6 +465,152 @@ export function RuralPlanProvider({ children }: { children: ReactNode }) {
         ]);
 
         patch((d) => ({ ...createEmptyData(), profile: d.profile, settings: d.settings }));
+      },
+
+      loadDemoData: async () => {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session) throw new Error("Not authenticated");
+
+        const userId = session.user.id;
+
+        try {
+          // Check if user profile exists (required for foreign key constraint)
+          const { data: existingProfile, error: profileCheckError } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("id", userId)
+            .single();
+
+          if (profileCheckError || !existingProfile) {
+            // Profile doesn't exist, create it
+            const { error: profileInsertError } = await supabase.from("profiles").insert({
+              id: userId,
+              name: session.user.email?.split("@")[0] || "User",
+              email: session.user.email || "",
+              location: "",
+              district: "Nashik",
+              state: "Maharashtra",
+            });
+
+            if (profileInsertError) {
+              console.error("Profile creation error:", profileInsertError);
+              throw new Error(`Failed to create profile: ${profileInsertError.message} (${profileInsertError.code})`);
+            }
+          }
+
+          // First, clear existing data
+          await Promise.all([
+            supabase.from("products").delete().eq("user_id", userId),
+            supabase.from("sales_history").delete().eq("user_id", userId),
+            supabase.from("inventory").delete().eq("user_id", userId),
+            supabase.from("production_history").delete().eq("user_id", userId),
+          ]);
+
+          // Get demo data structure
+          const demoData = createDemoData();
+
+          // Insert products and get their IDs
+          const productsToInsert = demoData.products.map((p) => ({
+            user_id: userId,
+            product_name: p.name,
+            raw_material_name: p.rawMaterial,
+            unit: p.unit,
+            production_capacity: p.capacityPerDay,
+            minimum_stock: p.minStock,
+            current_stock: p.currentStock,
+            production_cost: p.productionCost || 0,
+            shelf_life: p.shelfLifeDays,
+            workers: p.workers,
+            raw_per_unit: p.rawPerUnit,
+            raw_unit: p.rawUnit,
+          }));
+
+          const { data: insertedProducts, error: productsError } = await supabase
+            .from("products")
+            .insert(productsToInsert)
+            .select();
+
+          if (productsError) {
+            console.error("Products insert error:", productsError);
+            throw new Error(`Failed to insert products: ${productsError.message} (${productsError.code})`);
+          }
+
+          if (!insertedProducts || insertedProducts.length === 0) {
+            throw new Error("No products were inserted");
+          }
+
+          // Create mapping from demo product IDs to real product IDs
+          const productIdMap: Record<string, string> = {};
+          demoData.products.forEach((demoProduct, index) => {
+            if (insertedProducts && insertedProducts[index]) {
+              productIdMap[demoProduct.id] = insertedProducts[index].id;
+            }
+          });
+
+          // Insert sales history with mapped product IDs
+          const salesToInsert = demoData.sales
+            .filter((s) => productIdMap[s.productId]) // Only include sales for successfully inserted products
+            .map((s) => ({
+              user_id: userId,
+              product_id: productIdMap[s.productId],
+              date: s.date,
+              quantity_sold: s.quantity,
+              location: s.location,
+            }));
+
+          if (salesToInsert.length > 0) {
+            const { error: salesError } = await supabase.from("sales_history").insert(salesToInsert);
+            if (salesError) {
+              console.error("Sales insert error:", salesError);
+              throw new Error(`Failed to insert sales: ${salesError.message} (${salesError.code})`);
+            }
+          }
+
+          // Insert inventory
+          const materialsToInsert = demoData.materials.map((m) => ({
+            user_id: userId,
+            material_name: m.name,
+            unit: m.unit,
+            current_quantity: m.currentQty,
+            required_quantity: m.requiredQty,
+            minimum_quantity: m.minLevel,
+          }));
+
+          const { error: inventoryError } = await supabase.from("inventory").insert(materialsToInsert);
+          if (inventoryError) {
+            console.error("Inventory insert error:", inventoryError);
+            throw new Error(`Failed to insert inventory: ${inventoryError.message} (${inventoryError.code})`);
+          }
+
+          // Insert production history with mapped product IDs
+          const productionToInsert = demoData.production
+            .filter((r) => productIdMap[r.productId])
+            .map((r) => ({
+              user_id: userId,
+              product_id: productIdMap[r.productId],
+              date: r.date,
+              planned_quantity: r.planned,
+              actual_quantity: r.actual,
+              quantity_sold: r.sold,
+              remaining_stock: 0,
+            }));
+
+          if (productionToInsert.length > 0) {
+            const { error: productionError } = await supabase.from("production_history").insert(productionToInsert);
+            if (productionError) {
+              console.error("Production insert error:", productionError);
+              throw new Error(`Failed to insert production: ${productionError.message} (${productionError.code})`);
+            }
+          }
+
+          // Reload user data to update the UI
+          await loadUserData();
+        } catch (error) {
+          console.error("Load demo data error:", error);
+          throw error;
+        }
       },
     }),
     [data, ready, loading, error, patch, loadUserData],

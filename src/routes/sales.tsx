@@ -39,13 +39,13 @@ export const Route = createFileRoute("/sales")({
   },
   head: () => ({
     meta: [
-      { title: "Demand & Sales History — RuralPlan" },
+      { title: "Sales & Demand — RuralPlan" },
       {
         name: "description",
         content:
           "Record past sales and see daily, weekly and monthly demand trends with an estimated demand based on previous sales data.",
       },
-      { property: "og:title", content: "Demand & Sales History — RuralPlan" },
+      { property: "og:title", content: "Sales & Demand — RuralPlan" },
       {
         property: "og:description",
         content: "Track your sales and see the demand trend for each product.",
@@ -65,7 +65,7 @@ const schema = z.object({
 });
 
 function SalesPage() {
-  const { products, sales, addSale, removeSale, settings } = useStore();
+  const { products, sales, addSale, removeSale, updateProduct, settings } = useStore();
   const [productFilter, setProductFilter] = useState("");
   const activeProduct = products.find((p) => p.id === productFilter) ?? products[0];
 
@@ -112,12 +112,34 @@ function SalesPage() {
     }
     setErrors({});
     
+    // Validate stock availability
+    const product = products.find((p) => p.id === parsed.data.productId);
+    if (!product) {
+      toast.error("Product not found");
+      return;
+    }
+
+    if (product.currentStock < parsed.data.quantity) {
+      toast.error(
+        `Insufficient stock! Available: ${product.currentStock} ${product.unit}, Requested: ${parsed.data.quantity} ${product.unit}`
+      );
+      return;
+    }
+    
     // Handle async operation
     (async () => {
       try {
+        // 1. Record the sale
         await addSale(parsed.data);
+        
+        // 2. Decrease finished product stock
+        const newStock = product.currentStock - parsed.data.quantity;
+        await updateProduct(product.id, { currentStock: newStock });
+        
         setForm((f) => ({ ...f, quantity: "" }));
-        toast.success("Sales record added");
+        toast.success(
+          `Sale recorded: ${parsed.data.quantity} ${product.unit} sold. New stock: ${newStock} ${product.unit}`
+        );
       } catch (error) {
         console.error("Failed to add sale:", error);
         toast.error(error instanceof Error ? error.message : "Failed to add sale");
@@ -128,7 +150,7 @@ function SalesPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Demand & Sales History"
+        title="Sales & Demand"
         description="Enter what you sold in the past. RuralPlan uses this to estimate demand for the coming month."
         action={
           products.length > 0 ? (

@@ -71,6 +71,34 @@ function HistoryPage() {
 
   const chart = useMemo(() => productionChartData(production, products), [production, products]);
 
+  // Calculate monthly summary
+  const monthlySummary = useMemo(() => {
+    const summary: Record<string, Record<string, number>> = {};
+    
+    production.forEach((record) => {
+      const date = new Date(record.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const product = products.find((p) => p.id === record.productId);
+      
+      if (!product) return;
+      
+      if (!summary[monthKey]) {
+        summary[monthKey] = {};
+      }
+      
+      if (!summary[monthKey][product.name]) {
+        summary[monthKey][product.name] = 0;
+      }
+      
+      summary[monthKey][product.name] += record.actual;
+    });
+    
+    // Convert to array and sort by month (newest first)
+    return Object.entries(summary)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .slice(0, 6); // Show last 6 months
+  }, [production, products]);
+
   const add = () => {
     const parsed = schema.safeParse({
       date: form.date,
@@ -106,6 +134,37 @@ function HistoryPage() {
         title="Production History"
         description="Record what you planned, what you actually produced and what you sold. This helps improve future planning."
       />
+
+      {monthlySummary.length > 0 && (
+        <section className="mb-5 surface-card p-5">
+          <h2 className="font-display text-lg font-semibold mb-4">Monthly Production Summary</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {monthlySummary.map(([monthKey, products]) => {
+              const [year, month] = monthKey.split('-');
+              const monthName = new Date(Number(year), Number(month) - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+              const totalProduced = Object.values(products).reduce((sum, qty) => sum + qty, 0);
+              
+              return (
+                <div key={monthKey} className="rounded-lg border border-border p-4">
+                  <h3 className="font-semibold text-sm text-primary mb-3">{monthName}</h3>
+                  <div className="space-y-2">
+                    {Object.entries(products).map(([productName, quantity]) => (
+                      <div key={productName} className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">{productName}</span>
+                        <span className="font-medium">{quantity} jars</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center text-sm font-semibold pt-2 border-t border-border">
+                      <span>Total</span>
+                      <span>{totalProduced} jars</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="grid gap-5 lg:grid-cols-2">
         <div className="surface-card p-5">

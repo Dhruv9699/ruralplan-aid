@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  AlertTriangle,
+  BookOpen,
   Boxes,
   CalendarClock,
   CloudSun,
@@ -8,8 +8,6 @@ import {
   LayoutDashboard,
   LineChart,
   Menu,
-  MessageCircle,
-  Package,
   Settings,
   Sprout,
 } from "lucide-react";
@@ -21,18 +19,16 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/planner", label: "Production Planner", icon: CalendarClock },
-  { to: "/products", label: "Products", icon: Package },
-  { to: "/sales", label: "Demand & Sales", icon: LineChart },
+  { to: "/recipes", label: "Recipes", icon: BookOpen },
+  { to: "/sales", label: "Sales & Demand", icon: LineChart },
   { to: "/inventory", label: "Raw Materials", icon: Boxes },
-  { to: "/weather", label: "Weather", icon: CloudSun },
+  { to: "/planner", label: "Production Planner", icon: CalendarClock },
   { to: "/production-history", label: "Production History", icon: History },
-  { to: "/alerts", label: "Alerts", icon: AlertTriangle },
-  { to: "/assistant", label: "RuralPlan Assistant", icon: MessageCircle },
+  { to: "/weather", label: "Weather", icon: CloudSun },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
-const MOBILE_PRIMARY = ["/dashboard", "/planner", "/alerts", "/assistant"];
+const MOBILE_PRIMARY = ["/dashboard", "/planner", "/recipes", "/sales"];
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
@@ -49,6 +45,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  
   return (
     <nav className="flex flex-col gap-1">
       {NAV.map(({ to, label, icon: Icon }) => {
@@ -117,6 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="lg:pl-64">
+        {/* Mobile header */}
         <div className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-background/90 px-4 py-3 backdrop-blur lg:hidden">
           <div className="flex items-center gap-2">
             <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -124,19 +122,21 @@ export function AppShell({ children }: { children: ReactNode }) {
             </span>
             <span className="font-display text-base font-semibold">RuralPlan</span>
           </div>
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon" aria-label="Open menu">
-                <Menu className="size-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72 bg-sidebar p-4">
-              <div className="mb-6">
-                <Brand />
-              </div>
-              <NavLinks onNavigate={() => setOpen(false)} />
-            </SheetContent>
-          </Sheet>
+          <div className="flex items-center gap-2">
+            <Sheet open={open} onOpenChange={setOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="Open menu">
+                  <Menu className="size-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-72 bg-sidebar p-4">
+                <div className="mb-6">
+                  <Brand />
+                </div>
+                <NavLinks onNavigate={() => setOpen(false)} />
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
 
         <main className="px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:pb-12">{children}</main>

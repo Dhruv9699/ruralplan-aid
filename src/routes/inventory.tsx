@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Plus, Trash2, TriangleAlert } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useStore } from "@/lib/ruralplan/store";
 import { materialStatus } from "@/lib/ruralplan/engine";
+import { calculateMaterialRequirements, PRODUCT_RECIPES } from "@/lib/ruralplan/recipes";
 import { requireAuth } from "@/lib/auth-utils";
 
 export const Route = createFileRoute("/inventory")({
@@ -43,19 +44,73 @@ const schema = z.object({
   minLevel: z.number().min(0, "Minimum level cannot be negative"),
 });
 
+interface MaterialUsage {
+  productName: string;
+  quantityPerUnit: number;
+  unit: string;
+  recommendedProduction: number;
+  totalRequired: number;
+}
+
 function InventoryPage() {
-  const { materials, addMaterial, updateMaterial, removeMaterial } = useStore();
+  const { materials, products, addMaterial, updateMaterial, removeMaterial } = useStore();
   const [form, setForm] = useState({
     name: "",
     unit: "kg",
     currentQty: "",
-    requiredQty: "",
+    requiredQty: "0",
     minLevel: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  const insufficient = materials.filter((m) => materialStatus(m).status === "red");
+  // Calculate material usage from recipes and suggested production quantities
+  const materialUsageMap = useMemo(() => {
+    const usageMap: Record<string, MaterialUsage[]> = {};
+
+    products.forEach((product) => {
+      // Use a simple production recommendation: current stock + 20% buffer
+      const recommendedProduction = Math.ceil(product.minStock * 1.2);
+      
+      const requirements = calculateMaterialRequirements(product.name, recommendedProduction);
+      
+      requirements.forEach((req) => {
+        const materialName = req.materialName.toLowerCase().trim();
+        if (!usageMap[materialName]) {
+          usageMap[materialName] = [];
+        }
+        usageMap[materialName].push({
+          productName: product.name,
+          quantityPerUnit: req.quantityPerUnit,
+          unit: req.unit,
+          recommendedProduction,
+          totalRequired: req.totalRequired,
+        });
+      });
+    });
+
+    return usageMap;
+  }, [products]);
+
+  // Calculate total required quantity for each material
+  const materialsWithCalculatedRequired = useMemo(() => {
+    return materials.map((material) => {
+      const materialKey = material.name.toLowerCase().trim();
+      const usage = materialUsageMap[materialKey] || [];
+      const calculatedRequired = usage.reduce((sum, u) => sum + u.totalRequired, 0);
+      
+      return {
+        ...material,
+        calculatedRequired,
+        usage,
+      };
+    });
+  }, [materials, materialUsageMap]);
+
+  const insufficient = materialsWithCalculatedRequired.filter((m) => {
+    const required = m.calculatedRequired > 0 ? m.calculatedRequired : m.requiredQty;
+    return m.currentQty < required;
+  });
 
   const add = () => {
     const parsed = schema.safeParse({
@@ -73,11 +128,10 @@ function InventoryPage() {
     }
     setErrors({});
     
-    // Handle async operation
     (async () => {
       try {
         await addMaterial(parsed.data);
-        setForm({ name: "", unit: "kg", currentQty: "", requiredQty: "", minLevel: "" });
+        setForm({ name: "", unit: "kg", currentQty: "", requiredQty: "0", minLevel: "" });
         toast.success("Raw material added");
       } catch (error) {
         console.error("Failed to add material:", error);
@@ -90,7 +144,7 @@ function InventoryPage() {
     <AppShell>
       <PageHeader
         title="Raw Materials"
-        description="Keep the quantities updated so the planner knows what you can actually produce."
+        description="Track your inventory and see which materials are needed for planned production."
       />
 
       {insufficient.length > 0 && (
@@ -110,13 +164,15 @@ function InventoryPage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {materials.map((m) => {
-          const state = materialStatus(m);
-          const pct = m.requiredQty > 0 ? Math.min(100, (m.currentQty / m.requiredQty) * 100) : 100;
+        {materialsWithCalculatedRequired.map((m) => {
+          const requiredQty = m.calculatedRequired > 0 ? m.calculatedRequired : m.requiredQty;
+          const state = materialStatus({ ...m, requiredQty });
+          const pct = requiredQty > 0 ? Math.min(100, (m.currentQty / requiredQty) * 100) : 100;
+          
           return (
             <article key={m.id} className="surface-card p-5">
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="flex-1">
                   <h2 className="font-display text-lg font-semibold">{m.name}</h2>
                   <p className="text-sm text-muted-foreground">
                     Minimum level {m.minLevel} {m.unit}
@@ -124,12 +180,47 @@ function InventoryPage() {
                 </div>
                 <StatusPill level={state.status}>{state.label}</StatusPill>
               </div>
+
               <Progress value={pct} className="mt-4" />
-              <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                <Field label={`Current (${m.unit})`}>
+
+              <div className="mt-3 space-y-2">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Current</p>
+                    <p className="font-medium">{m.currentQty} {m.unit}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Required</p>
+                    <p className="font-medium">{requiredQty.toFixed(2)} {m.unit}</p>
+                  </div>
+                </div>
+
+                {m.usage.length > 0 && (
+                  <div className="mt-3 border-t border-border pt-3">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">Used For:</p>
+                    <div className="space-y-2">
+                      {m.usage.map((usage, idx) => (
+                        <div key={idx} className="text-xs bg-muted/50 rounded p-2">
+                          <p className="font-medium">{usage.productName}</p>
+                          <p className="text-muted-foreground">
+                            {usage.quantityPerUnit} {usage.unit} per unit × {usage.recommendedProduction} units
+                          </p>
+                          <p className="font-medium text-primary">
+                            = {usage.totalRequired.toFixed(2)} {usage.unit}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Field label={`Update (${m.unit})`}>
                   <Input
                     type="number"
                     min={0}
+                    step="0.1"
                     value={m.currentQty}
                     onChange={async (e) => {
                       try {
@@ -140,35 +231,21 @@ function InventoryPage() {
                     }}
                   />
                 </Field>
-                <Field label={`Required (${m.unit})`}>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={m.requiredQty}
-                    onChange={async (e) => {
-                      try {
-                        await updateMaterial(m.id, { requiredQty: Math.max(0, Number(e.target.value) || 0) });
-                      } catch (error) {
-                        toast.error("Failed to update quantity");
-                      }
-                    }}
-                  />
-                </Field>
+                <Button
+                  variant="outline"
+                  className="mt-6"
+                  onClick={async () => {
+                    try {
+                      await removeMaterial(m.id);
+                      toast.success(`${m.name} removed`);
+                    } catch (error) {
+                      toast.error("Failed to remove material");
+                    }
+                  }}
+                >
+                  <Trash2 className="size-4 text-destructive" /> Remove
+                </Button>
               </div>
-              <Button
-                variant="outline"
-                className="mt-3 w-full"
-                onClick={async () => {
-                  try {
-                    await removeMaterial(m.id);
-                    toast.success(`${m.name} removed`);
-                  } catch (error) {
-                    toast.error("Failed to remove material");
-                  }
-                }}
-              >
-                <Trash2 className="size-4 text-destructive" /> Remove
-              </Button>
             </article>
           );
         })}
@@ -176,7 +253,7 @@ function InventoryPage() {
 
       <section className="mt-5 surface-card p-5">
         <h2 className="font-display text-lg font-semibold">Add a raw material</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-6">
+        <div className="mt-4 grid gap-4 sm:grid-cols-5">
           <div className="sm:col-span-2">
             <Field label="Material name" error={errors["name"]}>
               <Input
@@ -193,22 +270,16 @@ function InventoryPage() {
             <Input
               type="number"
               min={0}
+              step="0.1"
               value={form.currentQty}
               onChange={(e) => set("currentQty", e.target.value)}
-            />
-          </Field>
-          <Field label="Required quantity" error={errors["requiredQty"]}>
-            <Input
-              type="number"
-              min={0}
-              value={form.requiredQty}
-              onChange={(e) => set("requiredQty", e.target.value)}
             />
           </Field>
           <Field label="Minimum level" error={errors["minLevel"]}>
             <Input
               type="number"
               min={0}
+              step="0.1"
               value={form.minLevel}
               onChange={(e) => set("minLevel", e.target.value)}
             />
@@ -217,6 +288,9 @@ function InventoryPage() {
         <Button className="mt-4 h-12" onClick={add}>
           <Plus className="size-4" /> Add material
         </Button>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Required quantities are calculated automatically based on recommended production levels.
+        </p>
       </section>
     </AppShell>
   );

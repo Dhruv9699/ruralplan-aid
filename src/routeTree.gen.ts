@@ -18,6 +18,7 @@ import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as PlannerRouteImport } from './routes/planner'
 import { Route as ProductionHistoryRouteImport } from './routes/production-history'
 import { Route as ProductsRouteImport } from './routes/products'
+import { Route as RecipesRouteImport } from './routes/recipes'
 import { Route as SalesRouteImport } from './routes/sales'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as WeatherRouteImport } from './routes/weather'
@@ -67,6 +68,11 @@ const ProductsRoute = ProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RecipesRoute = RecipesRouteImport.update({
+  id: '/recipes',
+  path: '/recipes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SalesRoute = SalesRouteImport.update({
   id: '/sales',
   path: '/sales',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/planner': typeof PlannerRoute
   '/production-history': typeof ProductionHistoryRoute
   '/products': typeof ProductsRoute
+  '/recipes': typeof RecipesRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
   '/weather': typeof WeatherRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/planner': typeof PlannerRoute
   '/production-history': typeof ProductionHistoryRoute
   '/products': typeof ProductsRoute
+  '/recipes': typeof RecipesRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
   '/weather': typeof WeatherRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/planner': typeof PlannerRoute
   '/production-history': typeof ProductionHistoryRoute
   '/products': typeof ProductsRoute
+  '/recipes': typeof RecipesRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
   '/weather': typeof WeatherRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/planner'
     | '/production-history'
     | '/products'
+    | '/recipes'
     | '/sales'
     | '/settings'
     | '/weather'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/planner'
     | '/production-history'
     | '/products'
+    | '/recipes'
     | '/sales'
     | '/settings'
     | '/weather'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/planner'
     | '/production-history'
     | '/products'
+    | '/recipes'
     | '/sales'
     | '/settings'
     | '/weather'
@@ -181,6 +193,7 @@ export interface RootRouteChildren {
   PlannerRoute: typeof PlannerRoute
   ProductionHistoryRoute: typeof ProductionHistoryRoute
   ProductsRoute: typeof ProductsRoute
+  RecipesRoute: typeof RecipesRoute
   SalesRoute: typeof SalesRoute
   SettingsRoute: typeof SettingsRoute
   WeatherRoute: typeof WeatherRoute
@@ -251,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/recipes': {
+      id: '/recipes'
+      path: '/recipes'
+      fullPath: '/recipes'
+      preLoaderRoute: typeof RecipesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sales': {
       id: '/sales'
       path: '/sales'
@@ -285,6 +305,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlannerRoute: PlannerRoute,
   ProductionHistoryRoute: ProductionHistoryRoute,
   ProductsRoute: ProductsRoute,
+  RecipesRoute: RecipesRoute,
   SalesRoute: SalesRoute,
   SettingsRoute: SettingsRoute,
   WeatherRoute: WeatherRoute,

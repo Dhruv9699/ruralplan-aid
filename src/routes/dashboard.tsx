@@ -18,6 +18,8 @@ import { computePlan, estimateDemand, materialFor, materialStatus } from "@/lib/
 import { buildAlerts } from "@/lib/ruralplan/alerts";
 import { getWeather, weatherFactor } from "@/lib/ruralplan/weather";
 import { requireAuth } from "@/lib/auth-utils";
+import { FIXED_PICKLE_NAMES, getDefaultPickleName } from "@/lib/ruralplan/constants";
+import type { Product } from "@/lib/ruralplan/types";
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {
@@ -42,10 +44,33 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 function Dashboard() {
-  const { products, materials, sales, settings } = useStore();
-  const [selected, setSelected] = useState("");
+  const { products, materials, sales, settings, loadDemoData } = useStore();
+  
+  // Selected pickle name (not product ID) - works even with no business data
+  const [selectedPickleName, setSelectedPickleName] = useState<string>(getDefaultPickleName());
+  const [isLoadingDemo, setIsLoadingDemo] = useState(false);
 
-  const product = products.find((p) => p.id === selected) ?? products[0];
+  // Find product data for selected pickle (may be null if no business data)
+  const productData = products.find((p) => p.name === selectedPickleName);
+  
+  // Create a virtual product structure for the selected pickle
+  // This allows calculations to work even with zero/no data
+  const virtualProduct: Product = productData || {
+    id: `virtual-${selectedPickleName}`,
+    userId: "",
+    name: selectedPickleName,
+    rawMaterial: selectedPickleName.split(" ")[0], // e.g., "Mango" from "Mango Pickle"
+    unit: "jar",
+    capacityPerDay: 0,
+    minStock: 0,
+    currentStock: 0,
+    productionCost: 0,
+    shelfLifeDays: 30,
+    workers: 0,
+    rawPerUnit: 0,
+    rawUnit: "kg",
+  };
+
   const weather = useMemo(
     () => getWeather(settings.district, settings.village),
     [settings.district, settings.village],
@@ -65,31 +90,27 @@ function Dashboard() {
     [products, materials, sales, settings],
   );
 
-  if (!product) {
-    return (
-      <AppShell>
-        <PageHeader title="Dashboard" description="No products yet." />
-        <div className="surface-card p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            Add your first product to start planning production.
-          </p>
-          <Link to="/products" className="mt-4 inline-block">
-            <Button size="lg">Add a product</Button>
-          </Link>
-        </div>
-      </AppShell>
-    );
-  }
+  const handleLoadDemoData = async () => {
+    setIsLoadingDemo(true);
+    try {
+      await loadDemoData();
+    } catch (error) {
+      console.error("Failed to load demo data:", error);
+    } finally {
+      setIsLoadingDemo(false);
+    }
+  };
 
-  const demand = estimateDemand(sales, product.id);
-  const mat = materialFor(materials, product.rawMaterial);
+  // Calculate demand and plan even with zero data
+  const demand = productData ? estimateDemand(sales, productData.id) : { estimate: 0, trend: 0 };
+  const mat = materialFor(materials, virtualProduct.rawMaterial);
   const plan = computePlan({
-    product,
-    currentStock: product.currentStock,
+    product: virtualProduct,
+    currentStock: virtualProduct.currentStock,
     expectedDemand: demand.estimate,
-    capacityPerDay: product.capacityPerDay,
+    capacityPerDay: virtualProduct.capacityPerDay || 50, // Default capacity for calculation
     rawMaterialAvailable: mat?.currentQty ?? 0,
-    workers: product.workers,
+    workers: virtualProduct.workers || 2, // Default workers for calculation
     productionDays: 7,
     weatherSlowdown: factor.slowdown,
     weatherLabel: factor.label,
@@ -103,34 +124,46 @@ function Dashboard() {
         title="Dashboard"
         description="RuralPlan helps rural entrepreneurs decide what, when, and how much to produce using their sales history, demand estimates, inventory, available resources, production capacity, and weather information."
         action={
-          <Select value={product.id} onValueChange={setSelected}>
-            <SelectTrigger className="h-12 w-full min-w-52 sm:w-60">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {products.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-3">
+            {products.length === 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLoadDemoData}
+                disabled={isLoadingDemo}
+              >
+                {isLoadingDemo ? "Loading..." : "Load Pickle Products"}
+              </Button>
+            )}
+            <Select value={selectedPickleName} onValueChange={setSelectedPickleName}>
+              <SelectTrigger className="h-12 w-full min-w-52 sm:w-60">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FIXED_PICKLE_NAMES.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         }
       />
 
       <section className="surface-card overflow-hidden">
         <div className="hero-gradient p-6 text-sidebar-foreground sm:p-8">
-          <p className="text-sm font-medium opacity-90">Recommended Production · {product.name}</p>
+          <p className="text-sm font-medium opacity-90">Recommended Production · {selectedPickleName}</p>
           <p className="mt-2 font-display text-4xl font-semibold sm:text-5xl">
-            {plan.requiredProduction} {product.unit}
+            {plan.requiredProduction} {virtualProduct.unit}
           </p>
           <p className="mt-3 max-w-2xl text-sm opacity-90">{plan.reason}</p>
           <p className="mt-2 text-sm opacity-90">
             {matState.status === "green"
-              ? "Available raw materials are sufficient."
-              : `Raw material status: ${matState.label}.`}{" "}
-            Estimated production time: {plan.daysNeeded} day(s) at {plan.effectiveDailyCapacity}{" "}
-            {product.unit}/day.
+              ? "You have sufficient raw materials to produce"
+              : `Raw Material Status: ${matState.label}.`}{" "}
+            Estimated production time: {plan.daysNeeded} {plan.daysNeeded === 1 ? "day" : "days"} at {plan.effectiveDailyCapacity}{" "}
+            {virtualProduct.unit}/day.
           </p>
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <StatusPill
@@ -138,7 +171,7 @@ function Dashboard() {
             >
               {plan.statusLine}
             </StatusPill>
-            <Link to="/planner">
+            <Link to="/planner" search={{ product: selectedPickleName }}>
               <Button variant="secondary" size="sm">
                 Open Production Planner
               </Button>
@@ -151,27 +184,27 @@ function Dashboard() {
         <StatCard
           label="Current Products"
           value={products.length}
-          hint={products.map((p) => p.name).join(", ")}
+          hint={products.length > 0 ? products.map((p) => p.name).join(", ") : "No alerts. Everything looks good!"}
           icon={<Package className="size-4" />}
         />
         <StatCard
           label="Current Stock"
-          value={`${product.currentStock} ${product.unit}`}
-          hint={`Minimum level ${product.minStock} ${product.unit}`}
+          value={`${virtualProduct.currentStock} ${virtualProduct.unit}`}
+          hint={`Minimum ${virtualProduct.minStock} ${virtualProduct.unit}`}
           icon={<ShoppingBasket className="size-4" />}
-          tone={product.currentStock <= product.minStock ? "warning" : "default"}
+          tone={virtualProduct.currentStock <= virtualProduct.minStock ? "warning" : "default"}
         />
         <StatCard
           label="Expected Demand"
-          value={`${demand.estimate} ${product.unit}`}
+          value={`${demand.estimate} ${virtualProduct.unit}`}
           hint="Based on previous sales data"
           icon={<TrendingUp className="size-4" />}
           tone="info"
         />
         <StatCard
           label="Recommended Production"
-          value={`${plan.requiredProduction} ${product.unit}`}
-          hint={`Includes ${plan.safetyStock} ${product.unit} safety stock`}
+          value={`${plan.requiredProduction} ${virtualProduct.unit}`}
+          hint={`Calculation ${plan.safetyStock} ${virtualProduct.unit} Safety stock`}
           icon={<Sparkles className="size-4" />}
           tone="success"
         />
@@ -184,9 +217,9 @@ function Dashboard() {
             <Boxes className="size-4 text-muted-foreground" />
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
-            {product.rawMaterial}: {mat ? `${mat.currentQty} ${mat.unit} available` : "not recorded"}
+            {virtualProduct.rawMaterial}: {mat ? `${mat.currentQty} ${mat.unit} Available` : "not recorded"}
             {" · "}
-            need about {plan.rawRequirement} {product.rawUnit}
+            Required {plan.rawRequirement} {virtualProduct.rawUnit}
           </p>
           <div className="mt-3">
             <StatusPill level={matState.status}>{matState.label}</StatusPill>
@@ -202,7 +235,7 @@ function Dashboard() {
             <CloudSun className="size-4 text-muted-foreground" />
           </div>
           <p className="mt-3 text-sm">
-            {settings.district}: {weather.today.condition}, {weather.today.tempC}°C · rain chance{" "}
+            {settings.district}: {weather.today.condition}, {weather.today.tempC}°C · Rain chance{" "}
             {weather.today.rainChance}%
           </p>
           <p className="mt-2 text-sm text-muted-foreground">{weather.productionNote}</p>
@@ -216,49 +249,57 @@ function Dashboard() {
             <h2 className="font-display text-base font-semibold">Production Alerts</h2>
             <AlertTriangle className="size-4 text-muted-foreground" />
           </div>
-          <ul className="mt-3 space-y-2.5">
-            {alerts.slice(0, 3).map((a) => (
-              <li key={a.id} className="text-sm">
-                <StatusPill level={a.level === "weather" ? "weather" : a.level}>
-                  {a.level === "weather" ? "Weather" : a.level.toUpperCase()}
-                </StatusPill>
-                <span className="ml-2">{a.title}</span>
-              </li>
-            ))}
-          </ul>
-          <Link to="/alerts" className="mt-4 inline-block text-sm font-medium text-primary">
-            View all alerts →
-          </Link>
+          {alerts.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">No alerts. Everything looks good!</p>
+          ) : (
+            <ul className="mt-3 space-y-2.5">
+              {alerts.slice(0, 4).map((a) => (
+                <li key={a.id} className="text-sm">
+                  <StatusPill level={a.level === "weather" ? "weather" : a.level}>
+                    {a.level === "weather" ? "Weather" : a.level.toUpperCase()}
+                  </StatusPill>
+                  <span className="ml-2">{a.title}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {alerts.length > 4 && (
+            <p className="mt-3 text-xs text-muted-foreground">+{alerts.length - 4} more alerts</p>
+          )}
         </article>
       </section>
 
       <section className="mt-5 grid gap-4 sm:grid-cols-3">
-        {products.map((p) => {
-          const d = estimateDemand(sales, p.id);
-          const need = Math.max(
-            0,
-            d.estimate - p.currentStock + Math.round((d.estimate * settings.safetyStockPercent) / 100),
-          );
+        {FIXED_PICKLE_NAMES.map((pickleName) => {
+          const p = products.find((prod) => prod.name === pickleName);
+          const d = p ? estimateDemand(sales, p.id) : { estimate: 0, trend: 0 };
+          const need = p
+            ? Math.max(
+                0,
+                d.estimate - p.currentStock + Math.round((d.estimate * settings.safetyStockPercent) / 100),
+              )
+            : 0;
+          
           return (
-            <article key={p.id} className="surface-card p-5">
-              <h3 className="font-display text-base font-semibold">{p.name}</h3>
+            <article key={pickleName} className="surface-card p-5">
+              <h3 className="font-display text-base font-semibold">{pickleName}</h3>
               <dl className="mt-3 space-y-1.5 text-sm text-muted-foreground">
                 <div className="flex justify-between">
-                  <dt>Current stock</dt>
+                  <dt>Current Stock</dt>
                   <dd className="font-medium text-foreground">
-                    {p.currentStock} {p.unit}
+                    {p?.currentStock ?? 0} {p?.unit ?? "jar"}
                   </dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt>Expected demand</dt>
+                  <dt>Expected Demand</dt>
                   <dd className="font-medium text-foreground">
-                    {d.estimate} {p.unit}
+                    {d.estimate} {p?.unit ?? "jar"}
                   </dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt>Recommended production</dt>
+                  <dt>Recommended Production</dt>
                   <dd className="font-medium text-primary">
-                    {need} {p.unit}
+                    {need} {p?.unit ?? "jar"}
                   </dd>
                 </div>
               </dl>
